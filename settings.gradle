@@ -1,9 +1,12 @@
 pluginManagement {
     repositories {
-        maven {
-            name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
-        }
+        // hanbings.io 提供的 Fabric 镜像，优先加速 fabric-loom
+        maven { name = 'Hanbings Fabric Mirror'; url = 'https://repository.hanbings.io/proxy' }
+        // 阿里云 Gradle 插件镜像，加速其他插件依赖
+        maven { url = 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url = 'https://maven.aliyun.com/repository/public' }
+        // 官方源作为回退
         gradlePluginPortal()
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
     }
 }

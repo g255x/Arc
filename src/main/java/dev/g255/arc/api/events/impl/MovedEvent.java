@@ -1,0 +1,12 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
+package dev.g255.arc.api.events.impl;
+
+public class MovedEvent {
+    public static final MovedEvent INSTANCE = new MovedEvent();
+
+    private MovedEvent() {
+    }
+}
+
