@@ -1,0 +1,89 @@
+package com.dev.leavesHack;
+
+import com.dev.leavesHack.manager.BreakManager;
+import com.dev.leavesHack.manager.DeathManager;
+import com.dev.leavesHack.manager.ModuleManager;
+import com.dev.leavesHack.modules.*;
+import com.dev.leavesHack.utils.entity.InventoryUtil;
+import com.dev.leavesHack.utils.rotation.Rotation;
+import com.mojang.logging.LogUtils;
+import meteordevelopment.meteorclient.addons.GithubRepo;
+import meteordevelopment.meteorclient.addons.MeteorAddon;
+import meteordevelopment.meteorclient.systems.hud.HudGroup;
+import meteordevelopment.meteorclient.systems.modules.Category;
+import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.Modules;
+import org.slf4j.Logger;
+
+public class LeavesHack extends MeteorAddon {
+    public static long initTime;
+    public static final Logger LOG = LogUtils.getLogger();
+    public static final Category LEAVES_COMBAT = new Category("LeavesCombat");
+    public static final Category LEAVES_MISC = new Category("LeavesMisc");
+    public static final HudGroup HUD_GROUP = new HudGroup("LeavesHack");
+
+    @Override
+    public void onInitialize() {
+        initTime = System.currentTimeMillis();
+        LOG.info("Initializing LeavesHack");
+        Rotation.INSTANCE.hashCode();
+        InventoryUtil.INSTANCE.hashCode();
+        ModuleManager.INSTANCE.hashCode();
+        DeathManager.INSTANCE.hashCode();
+        BreakManager.INSTANCE.hashCode();
+
+        // Modules
+        add(new AutoWeb());
+        add(new CrystalAuraPlus());
+        add(new BreakESP());
+        add(new DeathRender());
+        add(new AutoOffHand());
+        add(new SelfTrap());
+        add(new FriendsManager());
+        add(new ElytraGrimAccelerate());
+        add(new Printer());
+        add(new PlaceRender());
+        add(new AutoPlaceBlock());
+        add(new AutoAnchor());
+        add(new AutoRefreshTrade());
+        add(new AutoTree());
+        add(new AutoArmorPlus());
+        add(new AutoTorch());
+        add(new ModuleList());
+        add(new Aura());
+        add(new ScaffoldPlus());
+        add(new FireworkElytraFly());
+        add(new AutoCity());
+        add(new PacketMine());
+        add(new GlobalSetting());
+        add(new PacketLogger());
+        add(new Follower());
+        add(new GlassFiller());
+        add(new PistonCrystal());
+        add(new AutoLogin());
+        add(new NukerPlus());
+//        // Commands
+//        Commands.add(new CommandExample());
+//
+//        // HUD
+//        Hud.get().register(HudExample.INFO);
+    }
+    private void add(Module module){
+        Modules.get().add(module);
+    }
+    @Override
+    public void onRegisterCategories() {
+        Modules.registerCategory(LEAVES_COMBAT);
+        Modules.registerCategory(LEAVES_MISC);
+    }
+
+    @Override
+    public String getPackage() {
+        return "com.dev.leavesHack";
+    }
+
+    @Override
+    public GithubRepo getRepo() {
+        return new GithubRepo("MeteorDevelopment", "meteor-addon-template");
+    }
+}

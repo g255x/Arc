@@ -1,0 +1,6 @@
+# Forever 鉴权服务器 HTTPS 入口（Caddy）
+# 放到服务器 C:\forever\Caddyfile，证书文件放 C:\forever\tls\ 下
+52.175.50.86:443 {
+    tls C:/forever/tls/cert.pem C:/forever/tls/key.pem
+    reverse_proxy 127.0.0.1:80
+}

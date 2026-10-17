@@ -1,0 +1,682 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.yworks:yguard:5.0.0'
+    }
+}
+
+plugins {
+    id 'fabric-loom' version '1.14-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/forever.accesswidener")
+}
+
+repositories {
+    flatDir {
+        dirs 'lib'
+    }
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+    maven {
+        url "https://packages.jetbrains.team/maven/p/skija/maven"
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modImplementation name: 'baritone-api-fabric-1.11.2'
+    modImplementation name: 'nether-pathfinder-1.4.1'
+    modImplementation name: 'IAS-Fabric-1.21.1-9.0.4'
+    modImplementation name: 'satin-2.0.0'
+    modImplementation name: 'sodium-fabric-0.6.13+mc1.21.1'
+    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+    include 'org.java-websocket:Java-WebSocket:1.5.3'
+    include name: 'satin-2.0.0'
+    include name: 'IAS-Fabric-1.21.1-9.0.4'
+    include name: 'baritone-api-fabric-1.11.2'
+    include name: 'sodium-fabric-0.6.13+mc1.21.1'
+
+    implementation 'org.jetbrains.skija:skija-shared:0.93.6'
+    include 'org.jetbrains.skija:skija-shared:0.93.6'
+    implementation 'org.jetbrains.skija:skija-windows:0.93.6'
+    include 'org.jetbrains.skija:skija-windows:0.93.6'
+    implementation 'com.google.zxing:core:3.5.2'
+    include 'com.google.zxing:core:3.5.2'
+    implementation 'org.bytedeco:javacv:1.5.12'
+    include 'org.bytedeco:javacv:1.5.12'
+    implementation 'org.bytedeco:javacpp:1.5.12'
+    include 'org.bytedeco:javacpp:1.5.12'
+    implementation 'org.bytedeco:ffmpeg:7.1.1-1.5.12'
+    include 'org.bytedeco:ffmpeg:7.1.1-1.5.12'
+    runtimeOnly group: 'org.bytedeco', name: 'ffmpeg', version: '7.1.1-1.5.12', classifier: 'windows-x86_64'
+    include group: 'org.bytedeco', name: 'ffmpeg', version: '7.1.1-1.5.12', classifier: 'windows-x86_64'
+
+    implementation 'com.google.code.gson:gson:2.11.0'
+    include 'com.google.code.gson:gson:2.11.0'
+
+    implementation 'net.java.dev.jna:jna:5.17.0'
+    include 'net.java.dev.jna:jna:5.17.0'
+
+    implementation 'com.googlecode.soundlibs:jlayer:1.0.1.4'
+    include 'com.googlecode.soundlibs:jlayer:1.0.1.4'
+}
+
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.register('generateZkmKeepClasses') {
+    def outputFile = layout.buildDirectory.file("zkm/keep-classes.txt")
+    inputs.file("src/main/resources/fabric.mod.json")
+    inputs.files(fileTree("src/main/resources") {
+        include "*.mixins.json"
+    })
+    outputs.file(outputFile)
+
+    doLast {
+        def json = new groovy.json.JsonSlurper()
+        def keepClasses = new LinkedHashSet<String>()
+        def fabricJson = json.parse(file("src/main/resources/fabric.mod.json"))
+
+        fabricJson.entrypoints?.each { ignored, entrypoints ->
+            entrypoints.each { keepClasses.add(it as String) }
+        }
+
+        fabricJson.mixins?.each { mixinConfigName ->
+            def mixinConfigFile = file("src/main/resources/${mixinConfigName}")
+            if (!mixinConfigFile.exists()) {
+                return
+            }
+
+            def mixinConfig = json.parse(mixinConfigFile)
+            def mixinPackage = mixinConfig.package ? "${mixinConfig.package}." : ""
+            ['mixins', 'client', 'server'].each { key ->
+                mixinConfig[key]?.each { mixinName ->
+                    keepClasses.add("${mixinPackage}${mixinName}" as String)
+                }
+            }
+        }
+
+        def target = outputFile.get().asFile
+        target.parentFile.mkdirs()
+        target.text = keepClasses.join(System.lineSeparator()) + System.lineSeparator()
+        println "Wrote ${keepClasses.size()} class names to ${target}"
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+    // 中文 Windows 上 javac 默认用 GBK 读源码，源文件是 UTF-8 会导致中文字符串字面量乱码 / 编译失败
+    it.options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+sourceSets {
+    foreverLoader {
+        java.srcDir 'loader/src/main/java'
+        resources.srcDir 'loader/src/main/resources'
+    }
+}
+
+tasks.register('compileForeverLoader') {
+    group = 'forever loader'
+    description = 'Compatibility lifecycle task for compiling the standalone Forever Loader source set.'
+    dependsOn tasks.named('compileForeverLoaderJava')
+}
+
+tasks.register('runForeverLoader', JavaExec) {
+    group = 'forever loader'
+    description = 'Runs the standalone Forever Loader from source.'
+    dependsOn tasks.named('foreverLoaderClasses')
+    mainClass = 'dev.kissoo.loader.ForeverLoader'
+    classpath = sourceSets.foreverLoader.runtimeClasspath
+    workingDir = file('.')
+}
+
+tasks.register('foreverLoaderJar', Jar) {
+    group = 'forever loader'
+    description = 'Builds the standalone Forever Loader jar.'
+    dependsOn tasks.named('foreverLoaderClasses')
+    archiveFileName = 'ForeverLoader.jar'
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    from(sourceSets.foreverLoader.output)
+    manifest {
+        attributes(
+                'Main-Class': 'dev.kissoo.loader.ForeverLoader',
+                'Implementation-Title': 'Forever Loader',
+                'Implementation-Version': '1.0.0'
+        )
+    }
+}
+
+tasks.register('publishForeverLoaderToWeb', Copy) {
+    group = 'forever loader'
+    description = 'Copies the standalone loader jar into web/api/private for website deployment.'
+    dependsOn tasks.named('foreverLoaderJar')
+    from(tasks.named('foreverLoaderJar').flatMap { it.archiveFile })
+    into(file('web/api/private'))
+    rename { 'forever-loader.jar' }
+}
+
+def foreverRootDir = file('D:/illililililililililililillil')
+def foreverZkmDir = providers.gradleProperty('forever.zkm.dir')
+        .orElse('D:/illililililililililililillil/25zkm')
+def foreverRenameFile = providers.gradleProperty('forever.zkm.renameFile')
+        .orElse('D:/illililililililililililillil/rename/10000.txt')
+
+def zkmQuote = { File f ->
+    '"' + f.absolutePath + '"'
+}
+
+def javaExecPath = {
+    def javaHome = new File(System.getProperty('java.home'))
+    def exe = new File(new File(javaHome, 'bin'), org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'java.exe' : 'java')
+    exe.exists() ? exe.absolutePath : 'java'
+}
+
+tasks.register('generateForeverLoaderZkmScript') {
+    group = 'forever loader'
+    description = 'Generates a ZKM script for the standalone Forever Loader.'
+    dependsOn tasks.named('foreverLoaderJar')
+
+    def scriptFile = layout.buildDirectory.file('zkm/forever-loader-zkm.txt')
+    inputs.file(tasks.named('foreverLoaderJar').flatMap { it.archiveFile })
+    outputs.file(scriptFile)
+
+    doLast {
+        def inputJar = tasks.named('foreverLoaderJar').get().archiveFile.get().asFile
+        def outDir = layout.buildDirectory.dir('obfuscated/loader-zkm').get().asFile
+        def changeLog = layout.buildDirectory.file('zkm/ForeverLoader_ChangeLog.txt').get().asFile
+        def renameFile = file(foreverRenameFile.get())
+        def javaHome = new File(System.getProperty('java.home'))
+        def jmodsDir = new File(javaHome, 'jmods')
+        if (!jmodsDir.exists() && javaHome.parentFile != null) {
+            jmodsDir = new File(javaHome.parentFile, 'jmods')
+        }
+        if (!jmodsDir.exists()) {
+            throw new GradleException("Cannot find JDK jmods directory for ZKM classpath: ${jmodsDir}")
+        }
+        if (!renameFile.exists()) {
+            throw new GradleException("Cannot find ZKM rename dictionary: ${renameFile}")
+        }
+
+        outDir.mkdirs()
+        changeLog.parentFile.mkdirs()
+
+        def jmods = fileTree(jmodsDir) {
+            include '*.jmod'
+        }.files.sort { it.name }
+
+        def lines = []
+        lines << 'classpath'
+        jmods.eachWithIndex { File f, int i ->
+            lines << "    ${zkmQuote(f)}${i == jmods.size() - 1 ? ';' : ''}"
+        }
+        lines << ''
+        lines << 'open'
+        lines << '    openNestedArchives=false'
+        lines << "    ${zkmQuote(inputJar)};"
+        lines << ''
+        lines << 'exclude'
+        lines << '    hoprc.obf.neko.NekoInclude and'
+        lines << '    hoprc.obf.neko.NekoInclude * and'
+        lines << '    hoprc.obf.neko.NekoInclude *(*) and'
+        lines << '    hoprc.obf.neko.NekoExclude and'
+        lines << '    hoprc.obf.neko.NekoExclude * and'
+        lines << '    hoprc.obf.neko.NekoExclude *(*) and'
+        lines << '    hoprc.obf.neko. and'
+        lines << '    hoprc.obf.neko.**. and'
+        lines << '    hoprc.obf.neko.**.* and'
+        lines << '    hoprc.obf.neko.**.* * and'
+        lines << '    hoprc.obf.neko.**.* *(*) and'
+        lines << '    dev.kissoo.loader.ForeverLoader and'
+        lines << '    dev.kissoo.loader.ForeverLoader main(java.lang.String[]);'
+        lines << ''
+        lines << 'obfuscateFlowExclude            hoprc.obf.neko.* ;'
+        lines << 'obfuscateExceptionsExclude      hoprc.obf.neko.* ;'
+        lines << 'stringEncryptionExclude         hoprc.obf.neko.* ;'
+        lines << 'integerEncryptionExclude        hoprc.obf.neko.* ;'
+        lines << 'longEncryptionExclude           hoprc.obf.neko.* ;'
+        lines << 'obfuscateReferencesExclude      hoprc.obf.neko.* ;'
+        lines << 'obfuscateReferencesExclude      hoprc.obf.neko.* * ;'
+        lines << 'obfuscateReferencesExclude      hoprc.obf.neko.* *(*) ;'
+        lines << ''
+        lines << 'trim'
+        lines << '    deleteSourceFileAttributes=true'
+        lines << '    deleteDeprecatedAttributes=true'
+        lines << '    deleteAnnotationAttributes=false'
+        lines << '    deleteExceptionAttributes=false'
+        lines << '    deleteUnknownAttributes=false;'
+        lines << ''
+        lines << 'obfuscate'
+        lines << '    changeLogFileIn=""'
+        lines << "    changeLogFileOut=${zkmQuote(changeLog)}"
+        lines << '    keepGenericsInfo=false'
+        lines << '    keepInnerClassInfo=false'
+        lines << '    obfuscateFlow=extraAggressive'
+        lines << '    exceptionObfuscation=heavy'
+        lines << '    encryptStringLiterals=enhanced'
+        lines << '    encryptIntegerConstants=aggressive'
+        lines << '    encryptLongConstants=normal'
+        lines << '    mixedCaseClassNames=true'
+        lines << '    aggressiveMethodRenaming=true'
+        lines << '    randomize=true'
+        lines << '    localVariables=obfuscate'
+        lines << '    lineNumbers=scramble'
+        lines << '    autoReflectionHandling=normal'
+        lines << '    obfuscateReferences=normal'
+        lines << '    keepBalancedLocks=true'
+        lines << '    obfuscateParameters=normal'
+        lines << '    methodParameterChanges=none'
+        lines << "    newClassNameFile=${zkmQuote(renameFile)}"
+        lines << "    newFieldNameFile=${zkmQuote(renameFile)}"
+        lines << "    newMethodNameFile=${zkmQuote(renameFile)}"
+        lines << '    collapsePackagesWithDefault="PoweredbyOpus";'
+        lines << ''
+        lines << "saveAll archiveCompression=all ${zkmQuote(outDir)};"
+        lines << ''
+
+        def script = scriptFile.get().asFile
+        script.parentFile.mkdirs()
+        script.text = lines.join(System.lineSeparator())
+        println "Wrote Forever Loader ZKM script: ${script}"
+    }
+}
+
+tasks.register('obfuscateForeverLoaderZkm') {
+    group = 'forever loader'
+    description = 'Builds and obfuscates the standalone Forever Loader with ZKM.'
+    dependsOn tasks.named('generateForeverLoaderZkmScript')
+
+    def outputJar = layout.buildDirectory.file('libs/ForeverLoader-obf.jar')
+    inputs.file(tasks.named('foreverLoaderJar').flatMap { it.archiveFile })
+    inputs.file(layout.buildDirectory.file('zkm/forever-loader-zkm.txt'))
+    outputs.file(outputJar)
+
+    doLast {
+        def zkmJar = new File(file(foreverZkmDir.get()), 'ZKM.jar')
+        def script = layout.buildDirectory.file('zkm/forever-loader-zkm.txt').get().asFile
+        def zkmOutputDir = layout.buildDirectory.dir('obfuscated/loader-zkm').get().asFile
+        def zkmOutputJar = new File(zkmOutputDir, 'ForeverLoader.jar')
+        def targetJar = outputJar.get().asFile
+
+        if (!zkmJar.exists()) {
+            throw new GradleException("Cannot find ZKM.jar: ${zkmJar}")
+        }
+        if (zkmOutputDir.exists()) {
+            delete zkmOutputDir
+        }
+        zkmOutputDir.mkdirs()
+
+        println "Running ZKM for Forever Loader..."
+        def process = new ProcessBuilder(javaExecPath(), '-jar', zkmJar.absolutePath, script.absolutePath)
+                .directory(zkmJar.parentFile)
+                .inheritIO()
+                .start()
+        def exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw new GradleException("ZKM failed with exit code ${exitCode}")
+        }
+
+        if (!zkmOutputJar.exists()) {
+            def jars = fileTree(zkmOutputDir) {
+                include '*.jar'
+            }.files.sort { -it.lastModified() }
+            if (jars.isEmpty()) {
+                throw new GradleException("ZKM finished but no jar was produced in ${zkmOutputDir}")
+            }
+            zkmOutputJar = jars.first()
+        }
+
+        targetJar.parentFile.mkdirs()
+        copy {
+            from zkmOutputJar
+            into targetJar.parentFile
+            rename { targetJar.name }
+        }
+        println "Obfuscated Forever Loader jar: ${targetJar}"
+    }
+}
+
+tasks.register('verifyObfuscatedForeverLoaderJar') {
+    group = 'forever loader'
+    description = 'Verifies the obfuscated Forever Loader jar has a runnable manifest.'
+    dependsOn tasks.named('obfuscateForeverLoaderZkm')
+
+    doLast {
+        def jarFile = layout.buildDirectory.file('libs/ForeverLoader-obf.jar').get().asFile
+        if (!jarFile.exists()) {
+            throw new GradleException("Missing obfuscated loader jar: ${jarFile}")
+        }
+        def jar = new java.util.jar.JarFile(jarFile)
+        try {
+            def mainClass = jar.manifest?.mainAttributes?.getValue('Main-Class')
+            if (mainClass == null || mainClass.isBlank()) {
+                throw new GradleException("Missing Main-Class in ${jarFile}")
+            }
+            def mainEntry = mainClass.replace('.', '/') + '.class'
+            if (jar.getEntry(mainEntry) == null) {
+                throw new GradleException("Entry class is missing from obfuscated jar: ${mainEntry}")
+            }
+            println "Obfuscated loader Main-Class: ${mainClass}"
+        } finally {
+            jar.close()
+        }
+        println "Verified runnable obfuscated Forever Loader jar: ${jarFile}"
+    }
+}
+
+tasks.register('publishObfuscatedForeverLoaderToWeb', Copy) {
+    group = 'forever loader'
+    description = 'Copies the obfuscated standalone loader jar into web/api/private for website deployment.'
+    dependsOn tasks.named('verifyObfuscatedForeverLoaderJar')
+    from(layout.buildDirectory.file('libs/ForeverLoader-obf.jar'))
+    into(file('web/api/private'))
+    rename { 'forever-loader.jar' }
+}
+
+tasks.register('obfuscateForeverLoader') {
+    group = 'forever loader'
+    description = 'One-click build, ZKM obfuscation, verification, and website publishing for Forever Loader.'
+    dependsOn tasks.named('publishObfuscatedForeverLoaderToWeb')
+    doLast {
+        def localJar = layout.buildDirectory.file('libs/ForeverLoader-obf.jar').get().asFile
+        def webJar = file('web/api/private/forever-loader.jar')
+        println "Forever Loader obfuscation complete."
+        println "Local : ${localJar}"
+        println "Web   : ${webJar}"
+    }
+}
+
+def jpackageExecPath = {
+    def javaHome = new File(System.getProperty('java.home'))
+    def exe = new File(new File(javaHome, 'bin'), org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'jpackage.exe' : 'jpackage')
+    exe.exists() ? exe.absolutePath : 'jpackage'
+}
+
+tasks.register('packageForeverLoaderExe') {
+    group = 'forever loader'
+    description = 'Packages the obfuscated Forever Loader as a Windows app-image with a bundled Java runtime.'
+    dependsOn tasks.named('verifyObfuscatedForeverLoaderJar')
+
+    def inputJar = layout.buildDirectory.file('libs/ForeverLoader-obf.jar')
+    def imageRoot = layout.buildDirectory.dir('loader-exe')
+    def stagingRoot = layout.buildDirectory.dir('loader-jpackage-input')
+    inputs.file(inputJar)
+    outputs.dir(imageRoot)
+
+    doLast {
+        def jarFile = inputJar.get().asFile
+        def outputDir = imageRoot.get().asFile
+        def stagingDir = stagingRoot.get().asFile
+        if (outputDir.exists()) {
+            delete outputDir
+        }
+        if (stagingDir.exists()) {
+            delete stagingDir
+        }
+        outputDir.mkdirs()
+        stagingDir.mkdirs()
+        copy {
+            from jarFile
+            into stagingDir
+        }
+
+        def args = [
+                jpackageExecPath(),
+                '--type', 'app-image',
+                '--name', 'ForeverLoader',
+                '--app-version', '1.0.0',
+                '--vendor', 'Forever',
+                '--input', stagingDir.absolutePath,
+                '--main-jar', jarFile.name,
+                '--dest', outputDir.absolutePath,
+                '--java-options', '-Dfile.encoding=UTF-8',
+                '--java-options', '-Xmx768m'
+        ]
+
+        println "Running jpackage for Forever Loader exe image..."
+        def process = new ProcessBuilder(args)
+                .directory(projectDir)
+                .inheritIO()
+                .start()
+        def exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw new GradleException("jpackage failed with exit code ${exitCode}. Make sure Gradle is running on a full JDK 21, not a JRE.")
+        }
+
+        def exe = new File(outputDir, 'ForeverLoader/ForeverLoader.exe')
+        if (!exe.exists()) {
+            throw new GradleException("jpackage finished but exe was not found: ${exe}")
+        }
+
+        // jpackage launches the UI through its native executable but does not place
+        // java/javaw launchers in the app-image. The built-in Minecraft launcher
+        // needs javaw, so copy the matching JDK 21 launchers into the bundled runtime.
+        def sourceBin = new File(System.getProperty('java.home'), 'bin')
+        def runtimeBin = new File(outputDir, 'ForeverLoader/runtime/bin')
+        ['java.exe', 'javaw.exe'].each { launcherName ->
+            def sourceLauncher = new File(sourceBin, launcherName)
+            if (!sourceLauncher.exists()) {
+                throw new GradleException("Missing JDK launcher required by built-in Minecraft launch: ${sourceLauncher}")
+            }
+            copy {
+                from sourceLauncher
+                into runtimeBin
+            }
+        }
+        println "Forever Loader exe image: ${exe.parentFile}"
+    }
+}
+
+tasks.register('zipForeverLoaderExe', Zip) {
+    group = 'forever loader'
+    description = 'Zips the bundled Forever Loader exe image for website upload.'
+    dependsOn tasks.named('packageForeverLoaderExe')
+    archiveFileName = 'ForeverLoader-Windows.zip'
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    from(layout.buildDirectory.dir('loader-exe/ForeverLoader')) {
+        into 'ForeverLoader'
+    }
+}
+
+tasks.register('publishForeverLoaderExeToWeb', Copy) {
+    group = 'forever loader'
+    description = 'Copies the bundled Forever Loader Windows zip into web/api/private for website deployment.'
+    dependsOn tasks.named('zipForeverLoaderExe')
+    from(layout.buildDirectory.file('libs/ForeverLoader-Windows.zip'))
+    into(file('web/api/private'))
+    rename { 'forever-loader-windows.zip' }
+}
+
+tasks.named('build').configure {
+    dependsOn tasks.named('foreverLoaderJar')
+}
+
+// ─── yGuard Obfuscation ────────────────────────────────────────────
+def yguardOutputDir  = layout.buildDirectory.dir('obfuscated')
+def yguardOutputJar  = layout.buildDirectory.file('obfuscated/Forever-obf.jar')
+
+tasks.register('yguardObfuscate') {
+    group       = 'forever'
+    description = 'Obfuscate the built Forever jar with yGuard (rename only, no shrink).'
+    dependsOn build
+
+    inputs.file(tasks.named('remapJar').flatMap { it.archiveFile })
+    outputs.file(yguardOutputJar)
+
+    doLast {
+        def inputJar  = tasks.named('remapJar').get().archiveFile.get().asFile
+        def outDir    = yguardOutputDir.get().asFile
+        def outJar    = yguardOutputJar.get().asFile
+        def renameLog = layout.buildDirectory.file('yguard-rename-log.xml').get().asFile
+
+        outDir.mkdirs()
+        renameLog.parentFile.mkdirs()
+
+        ant.taskdef(
+            name: 'yguard',
+            classname: 'com.yworks.yguard.YGuardTask',
+            classpath: buildscript.configurations.classpath.asPath
+        )
+
+        ant.yguard {
+            inoutpair(in: inputJar.absolutePath, out: outJar.absolutePath)
+            rename(logfile: renameLog.absolutePath, replaceClassNameStrings: 'true') {
+                keep {
+                    // Fabric entry point
+                    'class'(name: 'nacho.Forever', methods: 'private', fields: 'private')
+                    // Mixin classes — keep ALL members (@Shadow/@Inject need exact names)
+                    'class'(name: 'hoprc.asm.accessors.**', methods: 'private', fields: 'private')
+                    'class'(name: 'hoprc.asm.mixins.**', methods: 'private', fields: 'private')
+                    'class'(name: 'hoprc.asm.mixins.sodium.**', methods: 'private', fields: 'private')
+                    'class'(name: 'hoprc.asm.mixins.spearfix.**', methods: 'private', fields: 'private')
+                }
+            }
+        }
+    }
+}
+
+// ─── Noobfuscator CLI (string encryption) ─────────────────────────
+def noobfuscatorJar = rootProject.layout.projectDirectory.file('tools/Noobfuscator/build/libs/Noobfuscator 1.0-SNAPSHOT.jar')
+def noobfuscatorCli = rootProject.layout.projectDirectory.file('tools/NoobfuscatorCli.class')
+
+tasks.register('noobfuscate', JavaExec) {
+    group       = 'forever'
+    description = 'Encrypt all string literals with Noobfuscator'
+    dependsOn yguardObfuscate
+
+    inputs.file(yguardOutputJar)
+    inputs.file(noobfuscatorJar)
+    outputs.file(layout.buildDirectory.file('obfuscated/Forever-final.jar'))
+
+    classpath = files(noobfuscatorJar, rootProject.layout.projectDirectory.file('tools'))
+    mainClass = 'NoobfuscatorCli'
+    args = [
+        yguardOutputJar.get().asFile.absolutePath,
+        layout.buildDirectory.file('obfuscated/Forever-final.jar').get().asFile.absolutePath
+    ]
+    maxHeapSize = '4G'
+}
+
+// ─── One-click full obfuscation ──────────────────────────────────
+tasks.register('obfuscate') {
+    group       = 'forever'
+    description = 'Build + yGuard rename + Noobfuscator string encryption → final obfuscated JAR'
+    dependsOn noobfuscate
+
+    doLast {
+        def finalJar = layout.buildDirectory.file('obfuscated/Forever-final.jar').get().asFile
+        println ''
+        println '══════════════════════════════════════════════════'
+        println '  Obfuscation complete!'
+        println "  Output: ${finalJar}"
+        println "  Size  : ${finalJar.length() / 1024 / 1024} MB"
+        println '══════════════════════════════════════════════════'
+    }
+}
+
+// ─── 防篡改：嵌入 jar SHA-256 ────────────────────────────────────
+// 用法：build + inject（jar uf dev/）之后执行 ./gradlew embedSha
+// 计算最终 jar（排除 sha256.txt 自身）的 SHA-256，写入 sha256.txt 嵌入 jar，
+// 并存一份到 <jar>.sha256.txt。运行时 IntegrityCheck 重算比对，不一致即崩。
+tasks.register('embedSha') {
+    group       = 'forever'
+    description = 'Compute jar SHA-256 (excluding sha256.txt) and embed it into the jar'
+    doLast {
+        def jarFile = file("build/libs/Forever-1.3.0.jar")
+        if (!jarFile.exists()) {
+            throw new GradleException("jar not found: ${jarFile} — run ./gradlew build + inject first")
+        }
+        def sha = computeExcludedSha(jarFile)
+
+        // 写 sha256.txt 到临时目录，用 jar 工具加进 jar 根部
+        def tmpDir = file("${buildDir}/embedSha")
+        tmpDir.mkdirs()
+        def shaFile = new File(tmpDir, "sha256.txt")
+        shaFile.text = sha
+
+        def jarBin = "${System.getProperty('java.home')}/bin/jar"
+        def jarTool = new File(jarBin).exists() ? jarBin : 'jar'
+        def pb = new ProcessBuilder(jarTool, 'uf', jarFile.absolutePath, '-C', tmpDir.absolutePath, 'sha256.txt')
+        pb.redirectErrorStream(true)
+        def proc = pb.start()
+        proc.waitFor()
+        if (proc.exitValue() != 0) {
+            throw new GradleException("jar tool failed with exit " + proc.exitValue())
+        }
+
+        // side 文件便于核对
+        new File(jarFile.absolutePath + ".sha256.txt").text = sha
+        println ''
+        println '══════════════════════════════════════════════════'
+        println '  Integrity SHA embedded!'
+        println "  JAR : ${jarFile.absolutePath}"
+        println "  SHA : ${sha}"
+        println '══════════════════════════════════════════════════'
+    }
+}
+
+def computeExcludedSha(File jarFile) {
+    def md = java.security.MessageDigest.getInstance('SHA-256')
+    def names = []
+    new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+        zip.entries().each { e ->
+            if (e.isDirectory()) return
+            if (e.name == 'sha256.txt') return
+            names << e.name
+        }
+        names.sort()
+        names.each { name ->
+            def entry = zip.getEntry(name)
+            md.update(name.getBytes('UTF-8'))
+            md.update((byte) 0)
+            zip.getInputStream(entry).withCloseable { ins ->
+                def buf = new byte[8192]
+                int n
+                while ((n = ins.read(buf)) != -1) md.update(buf, 0, n)
+            }
+            md.update((byte) 1)
+        }
+    }
+    return md.digest().collect { String.format('%02x', it) }.join('')
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+
+    repositories {
+    }
+}

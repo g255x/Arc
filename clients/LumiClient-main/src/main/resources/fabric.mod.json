@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "lumi",
+  "version": "${version}",
+  "name": "Lumi",
+  "description": "Lumi Client",
+  "icon": "lumi_icon.png",
+  "authors": [
+    "G255"
+  ],
+  "accessWidener": "lumi.accesswidener",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.G255.Lumi.Lumi"
+    ]
+  },
+  "mixins": [
+    "lumi.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.21.1",
+    "java": ">=17"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}

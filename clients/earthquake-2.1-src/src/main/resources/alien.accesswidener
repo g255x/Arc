@@ -1,0 +1,42 @@
+accessWidener	v2	named
+
+# LivingEntity
+accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
+
+# Direction
+accessible field net/minecraft/util/math/Direction HORIZONTAL [Lnet/minecraft/util/math/Direction;
+
+# LimbAnimator
+accessible field net/minecraft/entity/LimbAnimator pos F
+
+# AbstractBlock / AbstractBlockState
+accessible class net/minecraft/block/AbstractBlock$AbstractBlockState$ShapeCache
+accessible field net/minecraft/block/AbstractBlock$AbstractBlockState shapeCache Lnet/minecraft/block/AbstractBlock$AbstractBlockState$ShapeCache;
+accessible field net/minecraft/block/AbstractBlock$AbstractBlockState$ShapeCache isFullCube Z
+
+# PlayerInteractEntityC2SPacket - make entire class accessible
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractType
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$Handler
+
+# BackgroundRenderer - make entire class accessible
+accessible class net/minecraft/client/render/BackgroundRenderer
+accessible class net/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier
+accessible class net/minecraft/client/render/BackgroundRenderer$FogType
+
+# MinecraftClient
+accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
+
+# PlayerInteractEntityC2SPacket - write method
+accessible method net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket write (Lnet/minecraft/network/PacketByteBuf;)V
+
+# PalettedContainer
+accessible class net/minecraft/world/chunk/PalettedContainer$Data
+accessible field net/minecraft/world/chunk/PalettedContainer data Lnet/minecraft/world/chunk/PalettedContainer$Data;
+
+# LivingEntity (method)
+accessible method net/minecraft/entity/LivingEntity isPushable ()Z
+
+# ClientWorld - getPendingUpdateManager
+accessible method net/minecraft/client/world/ClientWorld getPendingUpdateManager ()Lnet/minecraft/client/network/PendingUpdateManager;

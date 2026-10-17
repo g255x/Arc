@@ -1,0 +1,122 @@
+plugins {
+    id 'fabric-loom' version '1.15-SNAPSHOT'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = project.archives_base_name
+}
+
+version = project.mod_version
+group = project.maven_group
+
+loom {
+    accessWidenerPath = file("src/main/resources/perish.accesswidener")
+}
+
+repositories {
+    flatDir {
+        dirs 'lib'
+    }
+    mavenCentral()
+}
+
+configurations {
+    implementation.extendsFrom(library)
+    shadow.extendsFrom(library)
+}
+
+
+repositories {
+    maven {
+        name = 'Ladysnake Mods'
+        url = 'https://maven.ladysnake.org/releases'
+        content {
+            includeGroup 'io.github.ladysnake'
+            includeGroup 'org.ladysnake'
+            includeGroupByRegex 'dev\\.onyxstudios.*'
+        }
+    }
+    maven {
+        name = 'JitPack'
+        url = 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation "com.github.oshi:oshi-core:6.4.10"
+    include "com.github.oshi:oshi-core:6.4.10"
+    include "net.java.dev.jna:jna:5.13.0"
+    include "net.java.dev.jna:jna-platform:5.13.0"
+    modImplementation "org.ladysnake:satin:2.0.0"
+    include "org.ladysnake:satin:2.0.0"
+    implementation "org.lwjgl:lwjgl-nanovg:3.3.3"
+    include "org.lwjgl:lwjgl-nanovg:3.3.3"
+    implementation "org.lwjgl:lwjgl-nanovg:3.3.3:natives-windows"
+    include "org.lwjgl:lwjgl-nanovg:3.3.3:natives-windows"
+    implementation "org.lwjgl:lwjgl-nanovg:3.3.3:natives-linux"
+    include "org.lwjgl:lwjgl-nanovg:3.3.3:natives-linux"
+    implementation "org.lwjgl:lwjgl-nanovg:3.3.3:natives-macos"
+    include "org.lwjgl:lwjgl-nanovg:3.3.3:natives-macos"
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    include "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.github.goxr3plus:java-stream-player:10.0.2"
+    include "com.github.goxr3plus:java-stream-player:10.0.2"
+    implementation "net.bytebuddy:byte-buddy:1.14.18"
+    include "net.bytebuddy:byte-buddy:1.14.18"
+    implementation "net.bytebuddy:byte-buddy-agent:1.14.18"
+    include "net.bytebuddy:byte-buddy-agent:1.14.18"
+    implementation "org.ow2.asm:asm-tree:9.7"
+    implementation "org.ow2.asm:asm-util:9.7"
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    // ensure that the encoding is set to UTF-8, no matter what the system default is
+    // this fixes some edge cases with special characters not displaying correctly
+    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+    // If Javadoc is generated, this must be specified in that task too.
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
+}
+// configure the maven publication
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
+    }
+}

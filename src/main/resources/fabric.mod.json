@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "arc",
+  "version": "${version}",
+  "name": "Arc Client",
+  "description": "Arc Client for MC 1.21.1",
+  "authors": [
+    "IDhammaI"
+  ],
+  "accessWidener": "arc.accesswidener",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "dev.g255.arc.client.ArcClient"
+    ],
+    "main": [
+      "dev.g255.arc.Arc"
+    ]
+  },
+  "mixins": [
+    "arc.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=17"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
