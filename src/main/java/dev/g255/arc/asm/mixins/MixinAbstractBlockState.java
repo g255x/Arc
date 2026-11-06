@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.block.AbstractBlock$AbstractBlockState
- *  org.spongepowered.asm.mixin.Mixin
- *  org.spongepowered.asm.mixin.injection.At
- *  org.spongepowered.asm.mixin.injection.Inject
- *  org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
- */
 package dev.g255.arc.asm.mixins;
 
 import dev.g255.arc.mod.modules.Module;
@@ -18,16 +8,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value={AbstractBlock.AbstractBlockState.class})
+@Mixin({AbstractBlock.AbstractBlockState.class})
 public class MixinAbstractBlockState {
-    @Inject(method={"getLuminance"}, at={@At(value="HEAD")}, cancellable=true)
-    public void getLuminanceHook(CallbackInfoReturnable<Integer> cir) {
-        if (Module.nullCheck()) {
-            return;
-        }
-        if (Ambience.INSTANCE.customLuminance.getValue()) {
+   @Inject(
+      method = {"getLuminance"},
+      at = {@At("HEAD")},
+      cancellable = true
+   )
+   public void getLuminanceHook(CallbackInfoReturnable<Integer> cir) {
+      if (!Module.nullCheck()) {
+         if (Ambience.INSTANCE.customLuminance.getValue()) {
             cir.setReturnValue(Ambience.INSTANCE.luminance.getValueInt());
-        }
-    }
-}
+         }
 
+      }
+   }
+}

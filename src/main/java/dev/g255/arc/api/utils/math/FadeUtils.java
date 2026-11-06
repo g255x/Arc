@@ -1,43 +1,39 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.utils.math;
 
 public class FadeUtils {
-    public long length;
-    private long start;
+   public long length;
+   private long start;
 
-    public FadeUtils(long ms) {
-        this.length = ms;
-        this.reset();
-    }
+   public FadeUtils(long ms) {
+      this.length = ms;
+      this.reset();
+   }
 
-    public void reset() {
-        this.start = System.currentTimeMillis();
-    }
+   public void reset() {
+      this.start = System.currentTimeMillis();
+   }
 
-    public boolean isEnd() {
-        return this.getTime() >= this.length;
-    }
+   public boolean isEnd() {
+      return this.getTime() >= this.length;
+   }
 
-    protected long getTime() {
-        return System.currentTimeMillis() - this.start;
-    }
+   protected long getTime() {
+      return System.currentTimeMillis() - this.start;
+   }
 
-    public void setLength(long length) {
-        this.length = length;
-    }
+   public void setLength(long length) {
+      this.length = length;
+   }
 
-    public double getFadeOne() {
-        return this.isEnd() ? 1.0 : (double)this.getTime() / (double)this.length;
-    }
+   public double getFadeOne() {
+      return this.isEnd() ? (double)1.0F : (double)this.getTime() / (double)this.length;
+   }
 
-    public double easeOutQuad() {
-        return 1.0 - (1.0 - this.getFadeOne()) * (1.0 - this.getFadeOne());
-    }
+   public double easeOutQuad() {
+      return (double)1.0F - ((double)1.0F - this.getFadeOne()) * ((double)1.0F - this.getFadeOne());
+   }
 
-    public double ease(Easing easing) {
-        return easing.ease(this.getFadeOne());
-    }
+   public double ease(Easing easing) {
+      return easing.ease(this.getFadeOne());
+   }
 }
-

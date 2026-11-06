@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.block.Block
- *  net.minecraft.util.math.BlockPos
- */
 package dev.g255.arc.api.utils.path;
 
 import dev.g255.arc.api.utils.Wrapper;
@@ -12,55 +5,52 @@ import dev.g255.arc.mod.modules.impl.client.BaritoneModule;
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 
-public class BaritoneUtil
-implements Wrapper {
-    public static boolean loaded;
+public class BaritoneUtil implements Wrapper {
+   public static boolean loaded;
 
-    public static void gotoPos(BlockPos pos) {
-        if (loaded) {
-            BaritoneModule.gotoPos(pos);
-        }
-    }
+   public static void gotoPos(BlockPos pos) {
+      if (loaded) {
+         BaritoneModule.gotoPos(pos);
+      }
 
-    public static void forward() {
-        if (loaded) {
-            BaritoneModule.forward();
-        }
-    }
+   }
 
-    public static void mine(Block block) {
-        if (loaded) {
-            BaritoneModule.mine(block);
-        }
-    }
+   public static void forward() {
+      if (loaded) {
+         BaritoneModule.forward();
+      }
 
-    public static boolean isPathing() {
-        if (loaded) {
-            return BaritoneModule.isPathing();
-        }
-        return false;
-    }
+   }
 
-    public static void cancelEverything() {
-        if (loaded) {
-            BaritoneModule.cancelEverything();
-        }
-    }
+   public static void mine(Block block) {
+      if (loaded) {
+         BaritoneModule.mine(block);
+      }
 
-    public static boolean isActive() {
-        if (loaded) {
-            return BaritoneModule.isActive();
-        }
-        return false;
-    }
+   }
 
-    static {
-        Package[] packages;
-        for (Package pkg : packages = Package.getPackages()) {
-            if (!pkg.getName().contains("baritone.api")) continue;
+   public static boolean isPathing() {
+      return loaded ? BaritoneModule.isPathing() : false;
+   }
+
+   public static void cancelEverything() {
+      if (loaded) {
+         BaritoneModule.cancelEverything();
+      }
+
+   }
+
+   public static boolean isActive() {
+      return loaded ? BaritoneModule.isActive() : false;
+   }
+
+   static {
+      for(Package pkg : Package.getPackages()) {
+         if (pkg.getName().contains("baritone.api")) {
             loaded = true;
             break;
-        }
-    }
-}
+         }
+      }
 
+   }
+}

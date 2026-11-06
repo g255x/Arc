@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
- *  org.spongepowered.asm.mixin.Mixin
- *  org.spongepowered.asm.mixin.Mutable
- *  org.spongepowered.asm.mixin.gen.Accessor
- */
 package dev.g255.arc.asm.accessors;
 
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
@@ -14,27 +5,26 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(value={EntityVelocityUpdateS2CPacket.class})
+@Mixin({EntityVelocityUpdateS2CPacket.class})
 public interface IEntityVelocityUpdateS2CPacket {
-    @Mutable
-    @Accessor(value="velocityX")
-    public void setX(int var1);
+   @Mutable
+   @Accessor("velocityX")
+   void setX(int var1);
 
-    @Mutable
-    @Accessor(value="velocityY")
-    public void setY(int var1);
+   @Mutable
+   @Accessor("velocityY")
+   void setY(int var1);
 
-    @Mutable
-    @Accessor(value="velocityZ")
-    public void setZ(int var1);
+   @Mutable
+   @Accessor("velocityZ")
+   void setZ(int var1);
 
-    @Accessor(value="velocityX")
-    public int getX();
+   @Accessor("velocityX")
+   int getX();
 
-    @Accessor(value="velocityY")
-    public int getY();
+   @Accessor("velocityY")
+   int getY();
 
-    @Accessor(value="velocityZ")
-    public int getZ();
+   @Accessor("velocityZ")
+   int getZ();
 }
-

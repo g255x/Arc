@@ -1,17 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.mojang.blaze3d.systems.RenderSystem
- *  net.minecraft.entity.Entity
- *  net.minecraft.entity.decoration.EndCrystalEntity
- *  net.minecraft.entity.mob.MobEntity
- *  net.minecraft.entity.mob.SlimeEntity
- *  net.minecraft.entity.passive.AnimalEntity
- *  net.minecraft.entity.passive.VillagerEntity
- *  net.minecraft.entity.passive.WanderingTraderEntity
- *  net.minecraft.entity.player.PlayerEntity
- */
 package dev.g255.arc.mod.modules.impl.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -23,88 +9,149 @@ import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.ColorSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import java.awt.Color;
+import java.util.Objects;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.decoration.EndCrystalEntity;
+import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.passive.WanderingTraderEntity;
 
-public class Chams
-extends Module {
-    public static Chams INSTANCE;
-    public final BooleanSetting crystal = this.add(new BooleanSetting("Crystal", true).setParent());
-    public final BooleanSetting custom = this.add(new BooleanSetting("Custom", false, this.crystal::isOpen).setParent());
-    public final BooleanSetting depth = this.add(new BooleanSetting("Depth", false, () -> this.crystal.isOpen() && this.custom.isOpen()));
-    public final BooleanSetting chamsTexture = this.add(new BooleanSetting("ChamsTexture", true, () -> this.crystal.isOpen() && this.custom.isOpen()));
-    public final ColorSetting fill = this.add(new ColorSetting("Fill", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen()).injectBoolean(false));
-    public final ColorSetting line = this.add(new ColorSetting("Line", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen()).injectBoolean(false));
-    public final ColorSetting core = this.add(new ColorSetting("Core", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));
-    public final ColorSetting outerFrame = this.add(new ColorSetting("OuterFrame", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));
-    public final ColorSetting innerFrame = this.add(new ColorSetting("InnerFrame", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));
-    public final BooleanSetting glint = this.add(new BooleanSetting("Glint", true, this.crystal::isOpen));
-    public final BooleanSetting texture = this.add(new BooleanSetting("Texture", true, this.crystal::isOpen));
-    public final BooleanSetting spinSync = this.add(new BooleanSetting("SpinSync", false, this.crystal::isOpen));
-    public final SliderSetting scale = this.add(new SliderSetting("Scale", 1.0, 0.0, 3.0, 0.01, this.crystal::isOpen));
-    public final SliderSetting spinValue = this.add(new SliderSetting("SpinSpeed", 1.0, 0.0, 3.0, 0.01, this.crystal::isOpen));
-    public final SliderSetting bounceHeight = this.add(new SliderSetting("BounceHeight", 1.0, 0.0, 3.0, 0.01, this.crystal::isOpen));
-    public final SliderSetting floatValue = this.add(new SliderSetting("BounceSpeed", 1.0, 0.0, 3.0, 0.01, this.crystal::isOpen));
-    public final SliderSetting floatOffset = this.add(new SliderSetting("YOffset", 0.0, -1.0, 1.0, 0.01, this.crystal::isOpen));
-    public final BooleanSetting throughWall = this.add(new BooleanSetting("ThroughWall", false).setParent());
-    private final BooleanSetting Crystals = this.add(new BooleanSetting("Crystals", true, this.throughWall::isOpen));
-    private final BooleanSetting Players = this.add(new BooleanSetting("Players", true, this.throughWall::isOpen));
-    private final BooleanSetting Mobs = this.add(new BooleanSetting("Mobs", true, this.throughWall::isOpen));
-    private final BooleanSetting Animals = this.add(new BooleanSetting("Animals", true, this.throughWall::isOpen));
-    private final BooleanSetting Villagers = this.add(new BooleanSetting("Villagers", true, this.throughWall::isOpen));
-    private final BooleanSetting Slimes = this.add(new BooleanSetting("Slimes", true, this.throughWall::isOpen));
-    public final ColorSetting hand = this.add(new ColorSetting("Hand", -1).injectBoolean(true));
-    public int age;
+public class Chams extends Module {
+   public static Chams INSTANCE;
+   public final BooleanSetting crystal = this.add((new BooleanSetting("Crystal", true)).setParent());
+   public final BooleanSetting custom;
+   public final BooleanSetting depth;
+   public final BooleanSetting chamsTexture;
+   public final ColorSetting fill;
+   public final ColorSetting line;
+   public final ColorSetting core;
+   public final ColorSetting outerFrame;
+   public final ColorSetting innerFrame;
+   public final BooleanSetting glint;
+   public final BooleanSetting texture;
+   public final BooleanSetting spinSync;
+   public final SliderSetting scale;
+   public final SliderSetting spinValue;
+   public final SliderSetting bounceHeight;
+   public final SliderSetting floatValue;
+   public final SliderSetting floatOffset;
+   public final BooleanSetting throughWall;
+   private final BooleanSetting Crystals;
+   private final BooleanSetting Players;
+   private final BooleanSetting Mobs;
+   private final BooleanSetting Animals;
+   private final BooleanSetting Villagers;
+   private final BooleanSetting Slimes;
+   public final ColorSetting hand;
+   public int age;
 
-    public Chams() {
-        super("Chams", Module.Category.Render);
-        this.setChinese("\u6a21\u578b\u4e0a\u8272");
-        INSTANCE = this;
-    }
+   public Chams() {
+      super("Chams", Module.Category.Render);
+      BooleanSetting var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.custom = this.add((new BooleanSetting("Custom", false, var10006::isOpen)).setParent());
+      this.depth = this.add(new BooleanSetting("Depth", false, () -> this.crystal.isOpen() && this.custom.isOpen()));
+      this.chamsTexture = this.add(new BooleanSetting("ChamsTexture", true, () -> this.crystal.isOpen() && this.custom.isOpen()));
+      this.fill = this.add((new ColorSetting("Fill", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen())).injectBoolean(false));
+      this.line = this.add((new ColorSetting("Line", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen())).injectBoolean(false));
+      Color var10005 = new Color(255, 255, 255, 255);
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.core = this.add((new ColorSetting("Core", var10005, var10006::isOpen)).injectBoolean(true));
+      var10005 = new Color(255, 255, 255, 255);
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.outerFrame = this.add((new ColorSetting("OuterFrame", var10005, var10006::isOpen)).injectBoolean(true));
+      var10005 = new Color(255, 255, 255, 255);
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.innerFrame = this.add((new ColorSetting("InnerFrame", var10005, var10006::isOpen)).injectBoolean(true));
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.glint = this.add(new BooleanSetting("Glint", true, var10006::isOpen));
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.texture = this.add(new BooleanSetting("Texture", true, var10006::isOpen));
+      var10006 = this.crystal;
+      Objects.requireNonNull(var10006);
+      this.spinSync = this.add(new BooleanSetting("SpinSync", false, var10006::isOpen));
+      BooleanSetting var10009 = this.crystal;
+      Objects.requireNonNull(var10009);
+      this.scale = this.add(new SliderSetting("Scale", (double)1.0F, (double)0.0F, (double)3.0F, 0.01, var10009::isOpen));
+      var10009 = this.crystal;
+      Objects.requireNonNull(var10009);
+      this.spinValue = this.add(new SliderSetting("SpinSpeed", (double)1.0F, (double)0.0F, (double)3.0F, 0.01, var10009::isOpen));
+      var10009 = this.crystal;
+      Objects.requireNonNull(var10009);
+      this.bounceHeight = this.add(new SliderSetting("BounceHeight", (double)1.0F, (double)0.0F, (double)3.0F, 0.01, var10009::isOpen));
+      var10009 = this.crystal;
+      Objects.requireNonNull(var10009);
+      this.floatValue = this.add(new SliderSetting("BounceSpeed", (double)1.0F, (double)0.0F, (double)3.0F, 0.01, var10009::isOpen));
+      var10009 = this.crystal;
+      Objects.requireNonNull(var10009);
+      this.floatOffset = this.add(new SliderSetting("YOffset", (double)0.0F, (double)-1.0F, (double)1.0F, 0.01, var10009::isOpen));
+      this.throughWall = this.add((new BooleanSetting("ThroughWall", false)).setParent());
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Crystals = this.add(new BooleanSetting("Crystals", true, var10006::isOpen));
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Players = this.add(new BooleanSetting("Players", true, var10006::isOpen));
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Mobs = this.add(new BooleanSetting("Mobs", true, var10006::isOpen));
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Animals = this.add(new BooleanSetting("Animals", true, var10006::isOpen));
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Villagers = this.add(new BooleanSetting("Villagers", true, var10006::isOpen));
+      var10006 = this.throughWall;
+      Objects.requireNonNull(var10006);
+      this.Slimes = this.add(new BooleanSetting("Slimes", true, var10006::isOpen));
+      this.hand = this.add((new ColorSetting("Hand", -1)).injectBoolean(true));
+      this.setChinese("模型上色");
+      INSTANCE = this;
+   }
 
-    public boolean customCrystal() {
-        return this.isOn() && this.crystal.getValue();
-    }
+   public boolean customCrystal() {
+      return this.isOn() && this.crystal.getValue();
+   }
 
-    @EventListener
-    public void onUpdate(UpdateEvent event) {
-        ++this.age;
-    }
+   @EventListener
+   public void onUpdate(UpdateEvent event) {
+      ++this.age;
+   }
 
-    @EventListener(priority=-2147483648)
-    public void onRender3D(Render3DEvent event) {
-        if (this.hand.booleanValue) {
-            Color color = this.hand.getValue();
-            RenderSystem.setShaderColor((float)((float)color.getRed() / 255.0f), (float)((float)color.getGreen() / 255.0f), (float)((float)color.getBlue() / 255.0f), (float)((float)color.getAlpha() / 255.0f));
-        }
-    }
+   @EventListener(
+      priority = Integer.MIN_VALUE
+   )
+   public void onRender3D(Render3DEvent event) {
+      if (this.hand.booleanValue) {
+         Color color = this.hand.getValue();
+         RenderSystem.setShaderColor((float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F, (float)color.getAlpha() / 255.0F);
+      }
 
-    public boolean chams(Entity entity) {
-        if (entity instanceof EndCrystalEntity) {
-            return this.Crystals.getValue();
-        }
-        if (entity instanceof SlimeEntity) {
-            return this.Slimes.getValue();
-        }
-        if (entity instanceof PlayerEntity) {
-            return this.Players.getValue();
-        }
-        if (entity instanceof VillagerEntity || entity instanceof WanderingTraderEntity) {
-            return this.Villagers.getValue();
-        }
-        if (entity instanceof AnimalEntity) {
+   }
+
+   public boolean chams(Entity entity) {
+      if (entity instanceof EndCrystalEntity) {
+         return this.Crystals.getValue();
+      } else if (entity instanceof SlimeEntity) {
+         return this.Slimes.getValue();
+      } else if (entity instanceof PlayerEntity) {
+         return this.Players.getValue();
+      } else if (!(entity instanceof VillagerEntity) && !(entity instanceof WanderingTraderEntity)) {
+         if (entity instanceof AnimalEntity) {
             return this.Animals.getValue();
-        }
-        if (entity instanceof MobEntity) {
-            return this.Mobs.getValue();
-        }
-        return false;
-    }
+         } else {
+            return entity instanceof MobEntity ? this.Mobs.getValue() : false;
+         }
+      } else {
+         return this.Villagers.getValue();
+      }
+   }
 }
-

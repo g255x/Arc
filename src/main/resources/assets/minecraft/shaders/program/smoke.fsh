@@ -21,7 +21,7 @@ uniform vec4 first;
 uniform vec3 second;
 uniform vec3 third;
 
-uniform int oct;
+uniform float oct;
 
 float glowShader() {
 
@@ -61,7 +61,7 @@ float fbm( in vec2 _st) {
     vec2 shift = vec2(100.0);
     mat2 rot = mat2(cos(0.5), sin(0.5),
     -sin(0.5), cos(0.50));
-    for (int i = 0; i < oct; ++i) {
+    for (int i = 0; i < int(oct); ++i) {
         v += a * noise(_st);
         _st = rot * _st * 2.0 + shift;
         a *= 0.5;

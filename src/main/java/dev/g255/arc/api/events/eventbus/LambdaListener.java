@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.events.eventbus;
 
 import java.lang.invoke.LambdaMetafactory;
@@ -12,70 +9,66 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.function.Consumer;
 
-public class LambdaListener
-implements IListener {
-    private static Method privateLookupInMethod;
-    private final Class<?> target;
-    private final boolean isStatic;
-    private final int priority;
-    private Consumer<Object> executor;
+public class LambdaListener implements IListener {
+   private static Method privateLookupInMethod;
+   private final Class<?> target;
+   private final boolean isStatic;
+   private final int priority;
+   private Consumer<Object> executor;
 
-    public LambdaListener(Factory factory, Class<?> klass, Object object, Method method) {
-        this.target = method.getParameters()[0].getType();
-        this.isStatic = Modifier.isStatic(method.getModifiers());
-        this.priority = method.getAnnotation(EventListener.class).priority();
-        try {
-            MethodType invokedType;
-            MethodHandle methodHandle;
-            String name = method.getName();
-            MethodHandles.Lookup lookup = factory.create(privateLookupInMethod, klass);
-            MethodType methodType = MethodType.methodType(Void.TYPE, method.getParameters()[0].getType());
-            if (this.isStatic) {
-                methodHandle = lookup.findStatic(klass, name, methodType);
-                invokedType = MethodType.methodType(Consumer.class);
-            } else {
-                methodHandle = lookup.findVirtual(klass, name, methodType);
-                invokedType = MethodType.methodType(Consumer.class, klass);
-            }
-            MethodHandle lambdaFactory = LambdaMetafactory.metafactory(lookup, "accept", invokedType, MethodType.methodType(Void.TYPE, Object.class), methodHandle, methodType).getTarget();
-            this.executor = (Consumer<Object>) (this.isStatic ? lambdaFactory.invoke() : lambdaFactory.invoke(object));
-        }
-        catch (Throwable throwable) {
-            throwable.printStackTrace();
-        }
-    }
+   public LambdaListener(Factory factory, Class<?> klass, Object object, Method method) {
+      this.target = method.getParameters()[0].getType();
+      this.isStatic = Modifier.isStatic(method.getModifiers());
+      this.priority = ((EventListener)method.getAnnotation(EventListener.class)).priority();
 
-    @Override
-    public void call(Object event) {
-        this.executor.accept(event);
-    }
+      try {
+         String name = method.getName();
+         MethodHandles.Lookup lookup = factory.create(privateLookupInMethod, klass);
+         MethodType methodType = MethodType.methodType(Void.TYPE, method.getParameters()[0].getType());
+         MethodType invokedType;
+         MethodHandle methodHandle;
+         if (this.isStatic) {
+            methodHandle = lookup.findStatic(klass, name, methodType);
+            invokedType = MethodType.methodType(Consumer.class);
+         } else {
+            methodHandle = lookup.findVirtual(klass, name, methodType);
+            invokedType = MethodType.methodType(Consumer.class, klass);
+         }
 
-    @Override
-    public Class<?> getTarget() {
-        return this.target;
-    }
+         MethodHandle lambdaFactory = LambdaMetafactory.metafactory(lookup, "accept", invokedType, MethodType.methodType(Void.TYPE, Object.class), methodHandle, methodType).getTarget();
+         this.executor = (Consumer)(this.isStatic ? lambdaFactory.invoke() : lambdaFactory.invoke(object));
+      } catch (Throwable throwable) {
+         throwable.printStackTrace();
+      }
 
-    @Override
-    public int getPriority() {
-        return this.priority;
-    }
+   }
 
-    @Override
-    public boolean isStatic() {
-        return this.isStatic;
-    }
+   public void call(Object event) {
+      this.executor.accept(event);
+   }
 
-    static {
-        try {
-            privateLookupInMethod = MethodHandles.class.getDeclaredMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
-        }
-        catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
-    }
+   public Class<?> getTarget() {
+      return this.target;
+   }
 
-    public static interface Factory {
-        public MethodHandles.Lookup create(Method var1, Class<?> var2) throws InvocationTargetException, IllegalAccessException;
-    }
+   public int getPriority() {
+      return this.priority;
+   }
+
+   public boolean isStatic() {
+      return this.isStatic;
+   }
+
+   static {
+      try {
+         privateLookupInMethod = MethodHandles.class.getDeclaredMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
+      } catch (NoSuchMethodException e) {
+         e.printStackTrace();
+      }
+
+   }
+
+   public interface Factory {
+      MethodHandles.Lookup create(Method var1, Class<?> var2) throws InvocationTargetException, IllegalAccessException;
+   }
 }
-

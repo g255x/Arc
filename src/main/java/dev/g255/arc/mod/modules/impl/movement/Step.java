@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.entity.attribute.EntityAttributes
- *  net.minecraft.entity.player.PlayerEntity
- *  net.minecraft.network.packet.Packet
- *  net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket$PositionAndOnGround
- */
 package dev.g255.arc.mod.modules.impl.movement;
 
 import dev.g255.arc.Arc;
@@ -18,151 +9,136 @@ import dev.g255.arc.api.utils.player.EntityUtil;
 import dev.g255.arc.api.utils.player.MovementUtil;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.impl.combat.SelfTrap;
-import dev.g255.arc.mod.modules.impl.combat.Surround;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.entity.attribute.EntityAttributes;
 
-public class Step
-extends Module {
-    private final EnumSetting<Mode> mode = this.add(new EnumSetting<Mode>("Mode", Mode.Vanilla));
-    private final SliderSetting height = this.add(new SliderSetting("Height", 1.0, 0.0, 5.0, 0.5));
-    private final BooleanSetting useTimer = this.add(new BooleanSetting("Timer", true, () -> this.mode.getValue() == Mode.OldNCP || this.mode.getValue() == Mode.NCP));
-    private final BooleanSetting fast = this.add(new BooleanSetting("Fast", true, () -> this.mode.getValue() == Mode.NCP && this.useTimer.getValue()));
-    private final BooleanSetting onlyMoving = this.add(new BooleanSetting("OnlyMoving", true));
-    private final BooleanSetting surroundPause = this.add(new BooleanSetting("SurroundPause", true));
-    private final BooleanSetting inWebPause = this.add(new BooleanSetting("InWebPause", true));
-    private final BooleanSetting inBlockPause = this.add(new BooleanSetting("InBlockPause", true));
-    private final BooleanSetting sneakingPause = this.add(new BooleanSetting("SneakingPause", true));
-    private final BooleanSetting pathingPause = this.add(new BooleanSetting("PathingPause", true));
-    boolean timer;
-    int packets = 0;
+public class Step extends Module {
+   private final EnumSetting<Mode> mode;
+   private final SliderSetting height;
+   private final BooleanSetting useTimer;
+   private final BooleanSetting fast;
+   private final BooleanSetting onlyMoving;
+   private final BooleanSetting surroundPause;
+   private final BooleanSetting inWebPause;
+   private final BooleanSetting inBlockPause;
+   private final BooleanSetting sneakingPause;
+   private final BooleanSetting pathingPause;
+   boolean timer;
+   int packets;
 
-    public Step() {
-        super("Step", "Steps up blocks.", Module.Category.Movement);
-        this.setChinese("\u6b65\u884c\u8f85\u52a9");
-    }
+   public Step() {
+      super("Step", "Steps up blocks.", Module.Category.Movement);
+      this.mode = this.add(new EnumSetting("Mode", Step.Mode.Vanilla));
+      this.height = this.add(new SliderSetting("Height", (double)1.0F, (double)0.0F, (double)5.0F, (double)0.5F));
+      this.useTimer = this.add(new BooleanSetting("Timer", true, () -> this.mode.getValue() == Step.Mode.OldNCP || this.mode.getValue() == Step.Mode.NCP));
+      this.fast = this.add(new BooleanSetting("Fast", true, () -> this.mode.getValue() == Step.Mode.NCP && this.useTimer.getValue()));
+      this.onlyMoving = this.add(new BooleanSetting("OnlyMoving", true));
+      this.surroundPause = this.add(new BooleanSetting("SurroundPause", true));
+      this.inWebPause = this.add(new BooleanSetting("InWebPause", true));
+      this.inBlockPause = this.add(new BooleanSetting("InBlockPause", true));
+      this.sneakingPause = this.add(new BooleanSetting("SneakingPause", true));
+      this.pathingPause = this.add(new BooleanSetting("PathingPause", true));
+      this.packets = 0;
+      this.setChinese("步行辅助");
+   }
 
-    public static void setStepHeight(float v) {
-        Step.mc.player.getAttributeInstance(EntityAttributes.GENERIC_STEP_HEIGHT).setBaseValue((double)v);
-    }
+   public static void setStepHeight(float v) {
+      mc.player.getAttributeInstance(EntityAttributes.GENERIC_STEP_HEIGHT).setBaseValue((double)v);
+   }
 
-    @Override
-    public void onDisable() {
-        if (Step.nullCheck()) {
-            return;
-        }
-        Step.setStepHeight(0.6f);
-        Arc.TIMER.reset();
-    }
+   public void onDisable() {
+      if (!nullCheck()) {
+         setStepHeight(0.6F);
+         Arc.TIMER.reset();
+      }
+   }
 
-    @Override
-    public String getInfo() {
-        return this.mode.getValue().name();
-    }
+   public String getInfo() {
+      return ((Mode)this.mode.getValue()).name();
+   }
 
-    @EventListener
-    public void onUpdate(UpdateEvent event) {
-        if (this.pathingPause.getValue() && BaritoneUtil.isActive() || this.sneakingPause.getValue() && Step.mc.player.isSneaking() || this.inBlockPause.getValue() && EntityUtil.isInsideBlock() || Step.mc.player.isInLava() || Step.mc.player.isTouchingWater() || this.inWebPause.getValue() && Arc.PLAYER.isInWeb((PlayerEntity)Step.mc.player) || !Step.mc.player.isOnGround() || this.onlyMoving.getValue() && !MovementUtil.isMoving() || this.surroundPause.getValue() && (Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
-            Step.setStepHeight(0.6f);
-            return;
-        }
-        Step.setStepHeight(this.height.getValueFloat());
-    }
+   @EventListener
+   public void onUpdate(UpdateEvent event) {
+      if ((!this.pathingPause.getValue() || !BaritoneUtil.isActive()) && (!this.sneakingPause.getValue() || !mc.player.isSneaking()) && (!this.inBlockPause.getValue() || !EntityUtil.isInsideBlock()) && !mc.player.isInLava() && !mc.player.isTouchingWater() && (!this.inWebPause.getValue() || !Arc.PLAYER.isInWeb(mc.player)) && mc.player.isOnGround() && (!this.onlyMoving.getValue() || MovementUtil.isMoving()) && (!this.surroundPause.getValue() || !SelfTrap.INSTANCE.isOn())) {
+         setStepHeight(this.height.getValueFloat());
+      } else {
+         setStepHeight(0.6F);
+      }
+   }
 
-    @EventListener
-    public void onStep(TickEvent event) {
-        boolean strict;
-        if (event.isPost()) {
-            --this.packets;
-            return;
-        }
-        if (this.timer && this.packets <= 0) {
+   @EventListener
+   public void onStep(TickEvent event) {
+      if (event.isPost()) {
+         --this.packets;
+      } else {
+         if (this.timer && this.packets <= 0) {
             Arc.TIMER.reset();
             this.timer = false;
-        }
-        boolean bl = strict = this.mode.getValue() == Mode.NCP;
-        if (this.mode.getValue().equals((Object)Mode.OldNCP) || strict) {
-            double stepHeight = Step.mc.player.getY() - Step.mc.player.prevY;
-            if (stepHeight <= 0.75 || stepHeight > this.height.getValue()) {
-                return;
+         }
+
+         boolean strict = this.mode.getValue() == Step.Mode.NCP;
+         if (((Mode)this.mode.getValue()).equals(Step.Mode.OldNCP) || strict) {
+            double stepHeight = mc.player.getY() - mc.player.prevY;
+            if (stepHeight <= (double)0.75F || stepHeight > this.height.getValue()) {
+               return;
             }
+
             double[] offsets = this.getOffset(stepHeight);
             if (offsets != null && offsets.length > 1) {
-                if (this.useTimer.getValue()) {
-                    Arc.TIMER.set((float)this.getTimer(stepHeight));
-                    this.timer = true;
-                    this.packets = 2;
-                }
-                for (double offset : offsets) {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Step.mc.player.prevX, Step.mc.player.prevY + offset, Step.mc.player.prevZ, false));
-                }
-            }
-        }
-    }
+               if (this.useTimer.getValue()) {
+                  Arc.TIMER.set((float)this.getTimer(stepHeight));
+                  this.timer = true;
+                  this.packets = 2;
+               }
 
-    public double getTimer(double height) {
-        if (height > 0.6 && height <= 1.0) {
-            if (!this.fast.getValue() && this.mode.getValue() == Mode.NCP) {
-                return 0.3333333333333333;
+               for(double offset : offsets) {
+                  mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.prevX, mc.player.prevY + offset, mc.player.prevZ, false));
+               }
             }
-            return 0.5;
-        }
-        double[] offsets = this.getOffset(height);
-        if (offsets == null) {
-            return 1.0;
-        }
-        return 1.0 / (double)offsets.length;
-    }
+         }
 
-    public double[] getOffset(double height) {
-        boolean strict;
-        boolean bl = strict = this.mode.getValue() == Mode.NCP;
-        if (height == 0.75) {
-            if (strict) {
-                return new double[]{0.42, 0.753, 0.75};
-            }
-            return new double[]{0.42, 0.753};
-        }
-        if (height == 0.8125) {
-            if (strict) {
-                return new double[]{0.39, 0.7, 0.8125};
-            }
-            return new double[]{0.39, 0.7};
-        }
-        if (height == 0.875) {
-            if (strict) {
-                return new double[]{0.39, 0.7, 0.875};
-            }
-            return new double[]{0.39, 0.7};
-        }
-        if (height == 1.0) {
-            if (strict) {
-                return new double[]{0.42, 0.753, 1.0};
-            }
-            return new double[]{0.42, 0.753};
-        }
-        if (height == 1.5) {
-            return new double[]{0.42, 0.75, 1.0, 1.16, 1.23, 1.2};
-        }
-        if (height == 2.0) {
-            return new double[]{0.42, 0.78, 0.63, 0.51, 0.9, 1.21, 1.45, 1.43};
-        }
-        if (height == 2.5) {
-            return new double[]{0.425, 0.821, 0.699, 0.599, 1.022, 1.372, 1.652, 1.869, 2.019, 1.907};
-        }
-        return null;
-    }
+      }
+   }
 
-    public static enum Mode {
-        Vanilla,
-        OldNCP,
-        NCP;
+   public double getTimer(double height) {
+      if (height > 0.6 && height <= (double)1.0F) {
+         return !this.fast.getValue() && this.mode.getValue() == Step.Mode.NCP ? 0.3333333333333333 : (double)0.5F;
+      } else {
+         double[] offsets = this.getOffset(height);
+         return offsets == null ? (double)1.0F : (double)1.0F / (double)offsets.length;
+      }
+   }
 
-    }
+   public double[] getOffset(double height) {
+      boolean strict = this.mode.getValue() == Step.Mode.NCP;
+      if (height == (double)0.75F) {
+         return strict ? new double[]{0.42, 0.753, (double)0.75F} : new double[]{0.42, 0.753};
+      } else if (height == (double)0.8125F) {
+         return strict ? new double[]{0.39, 0.7, (double)0.8125F} : new double[]{0.39, 0.7};
+      } else if (height == (double)0.875F) {
+         return strict ? new double[]{0.39, 0.7, (double)0.875F} : new double[]{0.39, 0.7};
+      } else if (height == (double)1.0F) {
+         return strict ? new double[]{0.42, 0.753, (double)1.0F} : new double[]{0.42, 0.753};
+      } else if (height == (double)1.5F) {
+         return new double[]{0.42, (double)0.75F, (double)1.0F, 1.16, 1.23, 1.2};
+      } else if (height == (double)2.0F) {
+         return new double[]{0.42, 0.78, 0.63, 0.51, 0.9, 1.21, 1.45, 1.43};
+      } else {
+         return height == (double)2.5F ? new double[]{0.425, 0.821, 0.699, 0.599, 1.022, 1.372, 1.652, 1.869, 2.019, 1.907} : null;
+      }
+   }
+
+   public static enum Mode {
+      Vanilla,
+      OldNCP,
+      NCP;
+
+      // $FF: synthetic method
+      private static Mode[] $values() {
+         return new Mode[]{Vanilla, OldNCP, NCP};
+      }
+   }
 }
-

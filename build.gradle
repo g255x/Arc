@@ -15,12 +15,9 @@ loom {
 }
 
 repositories {
-    // 阿里云公共仓库，覆盖 Maven Central 等，速度最快
-    maven { url = 'https://maven.aliyun.com/repository/public' }
-    // hanbings.io Fabric 镜像，作为 BMCLAPI 的补充
-    maven { url = 'https://repository.hanbings.io/proxy' }
-    // 官方 Fabric 仓库作为最终回退
     maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.aliyun.com/repository/public' }
+    maven { url = 'https://repository.hanbings.io/proxy' }
     flatDir {
         dirs 'lib'
     }
@@ -36,14 +33,29 @@ dependencies {
     
     // Local lib dependencies
     modImplementation name: 'baritone-api-fabric-1.21.1-1.11.2'
+    // Baritone requires this at runtime for its elytra pathfinder
     modImplementation name: 'nether-pathfinder-1.4.1'
     modImplementation name: 'IAS-Fabric-1.21.1-9.0.2'
     modImplementation files('lib/satin-2.0.0.jar')
-    modImplementation name: 'sodium-fabric-0.6.13+mc1.21.1'
-    implementation 'org.apiguardian:apiguardian-api:1.1.2'
-    
+
+    // Skia (native canvas/font rendering)
+    // Bundled as nested jars in META-INF/jars (see fabric.mod.json)
+    implementation files('lib/skija-shared-0.116.4.jar')
+    runtimeOnly files('lib/skija-windows-x64-0.116.4.jar')
+
+    // Bundled helper types used by the Skia wrapper (io.github.humbleui.types)
+    implementation files('lib/types-0.2.0.jar')
+
     include name: 'IAS-Fabric-1.21.1-9.0.2'
     include name: 'satin-2.0.0'
+}
+
+tasks.named('compileJava') {
+    doFirst {
+        println "=== compileJava classpath ==="
+        classpath.files.findAll { it.name.contains('minecraft') || it.name.contains('fabric') }.each { println "\t${it}" }
+        println "=== total classpath entries: ${classpath.files.size()} ==="
+    }
 }
 
 processResources {

@@ -16,7 +16,7 @@ uniform float alpha2;
 
 uniform vec2 resolution;
 uniform float time;
-uniform int oct;
+uniform float oct;
 
 
 uniform float factor;
@@ -39,16 +39,14 @@ float noise(vec2 pos) {
 }
 
 float fbm(vec2 pos) {
-    // beta50 perf fix: the loop never transformed pos (the rot matrix was defined but
-    // never applied), so every octave sampled noise() at the SAME position:
-    //   v = noise(pos) * sum(0.5^i, i=0..oct-1) = noise(pos) * (1.0 - 0.5^oct)
-    // The old loop was oct(=10) identical noise evaluations per call, i.e. ~90% pure
-    // redundancy. Gradient runs fullscreen every frame on the main menu (and as an
-    // optional outline mode), so the dead octaves were a direct FPS sink. The closed
-    // form below is mathematically identical (<=0.1% coefficient difference at
-    // float precision), and getColor() stays visually unchanged.
-    float amp = 1.0 - pow(0.5, float(oct));
-    return amp * noise(pos);
+    float v = 0.0;
+    float a = 0.5;
+    mat2 rot = mat2(cos(0.1), sin(0.5), -sin(0.5), cos(0.5));
+    for (int i=0; i < int(oct); i++) {
+        v += a * noise(pos);
+        a *= 0.5;
+    }
+    return v;
 }
 
 float glowShader() {

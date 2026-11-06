@@ -1,12 +1,12 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.mod.modules.settings.enums;
 
 public enum SnapBack {
-    Tick,
-    Force,
-    None;
+   Tick,
+   Force,
+   None;
 
+   // $FF: synthetic method
+   private static SnapBack[] $values() {
+      return new SnapBack[]{Tick, Force, None};
+   }
 }
-

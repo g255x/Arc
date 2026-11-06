@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.DrawContext
- *  net.minecraft.client.network.PendingUpdateManager
- *  net.minecraft.client.network.SequencedPacketCreator
- *  net.minecraft.client.util.InputUtil
- *  net.minecraft.client.util.math.MatrixStack
- */
 package dev.g255.arc.mod.modules;
 
 import dev.g255.arc.Arc;
@@ -18,7 +8,7 @@ import dev.g255.arc.mod.modules.impl.client.BaritoneModule;
 import dev.g255.arc.mod.modules.impl.client.ClickGui;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.client.ColorsModule;
-import dev.g255.arc.mod.modules.impl.client.hud.HudSetting;
+import dev.g255.arc.mod.modules.impl.client.HUD;
 import dev.g255.arc.mod.modules.settings.Setting;
 import dev.g255.arc.mod.modules.settings.impl.BindSetting;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
@@ -29,398 +19,340 @@ import dev.g255.arc.mod.modules.settings.impl.StringSetting;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.PendingUpdateManager;
-import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.network.PendingUpdateManager;
+import net.minecraft.client.network.SequencedPacketCreator;
 
-public abstract class Module
-extends Mod {
-    public final BooleanSetting drawn;
-    private final List<Setting> settings = new ArrayList<Setting>();
-    private final String description;
-    private final Category category;
-    private final BindSetting bindSetting;
-    protected boolean state;
-    private String chinese;
+public abstract class Module extends Mod {
+   public final BooleanSetting drawn;
+   private final List<Setting> settings;
+   private final String description;
+   private final Category category;
+   private final BindSetting bindSetting;
+   protected boolean state;
+   private String chinese;
 
-    public Module(String name, Category category) {
-        this(name, "", category);
-    }
+   public Module(String name, Category category) {
+      this(name, "", category);
+   }
 
-    public Module(String name, String description, Category category) {
-        super(name);
-        this.category = category;
-        this.description = description;
-        this.bindSetting = this.add(new BindSetting("Key", this.isGuiModule() ? 344 : -1));
-        this.drawn = this.add(new BooleanSetting("Drawn", !this.hideInModuleList()));
-    }
+   public Module(String name, String description, Category category) {
+      super(name);
+      this.settings = new ArrayList();
+      this.category = category;
+      this.description = description;
+      this.bindSetting = this.add(new BindSetting("Key", this.isGuiModule() ? 344 : -1));
+      this.drawn = this.add(new BooleanSetting("Drawn", !this.hideInModuleList()));
+   }
 
-    private boolean isGuiModule() {
-        return this instanceof ClickGui;
-    }
+   private boolean isGuiModule() {
+      return this instanceof ClickGui;
+   }
 
-    private boolean hideInModuleList() {
-        return this instanceof ColorsModule || this instanceof BaritoneModule || this instanceof AntiCheat || this instanceof ClientSetting || this instanceof HudSetting || this.getName().equals("Info");
-    }
+   private boolean hideInModuleList() {
+      return this instanceof ColorsModule || this instanceof BaritoneModule || this instanceof AntiCheat || this instanceof ClientSetting || this instanceof HUD;
+   }
 
-    public void setChinese(String chinese) {
-        this.chinese = chinese;
-    }
+   public void setChinese(String chinese) {
+      this.chinese = chinese;
+   }
 
-    public String getArrayName() {
-        return this.getDisplayName() + this.getArrayInfo();
-    }
+   public String getArrayName() {
+      String var10000 = this.getDisplayName();
+      return var10000 + this.getArrayInfo();
+   }
 
-    public String getArrayInfo() {
-        return this.getInfo() == null ? "" : " \u00a77[\u00a7f" + this.getInfo() + "\u00a77]";
-    }
+   public String getArrayInfo() {
+      return this.getInfo() == null ? "" : " §7[§f" + this.getInfo() + "§7]";
+   }
 
-    public String getInfo() {
-        return null;
-    }
+   public String getInfo() {
+      return null;
+   }
 
-    public String getDisplayName() {
-        if (ClientSetting.INSTANCE.chinese.getValue() && this.chinese != null) {
-            return this.chinese;
-        }
-        return this.getName();
-    }
+   public String getDisplayName() {
+      // ClientSetting 在注册列表里排得较靠后，早期构造阶段 INSTANCE 仍为 null
+      boolean chinese = ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.chinese.getValue();
+      return chinese && this.chinese != null ? this.chinese : this.getName();
+   }
 
-    public String getDescription() {
-        return this.description;
-    }
+   public String getDescription() {
+      boolean chinese = ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.chinese.getValue();
+      String localized = dev.g255.arc.api.utils.i18n.ModuleDesc.get(this.getName(), chinese);
+      if (localized != null && !localized.isEmpty()) {
+         return localized;
+      }
 
-    public Category getCategory() {
-        return this.category;
-    }
+      if (this.description != null && !this.description.isEmpty()) {
+         return chinese && !dev.g255.arc.api.utils.i18n.LangUtil.containsCjk(this.description)
+            ? dev.g255.arc.api.utils.i18n.LangUtil.ui(this.description)
+            : this.description;
+      }
 
-    public BindSetting getBindSetting() {
-        return this.bindSetting;
-    }
+      return "";
+   }
 
-    public boolean isOn() {
-        return this.state;
-    }
+   public Category getCategory() {
+      return this.category;
+   }
 
-    public boolean isOff() {
-        return !this.isOn();
-    }
+   public BindSetting getBindSetting() {
+      return this.bindSetting;
+   }
 
-    public void toggle() {
-        if (this.isOn()) {
-            this.disable();
-        } else {
-            this.enable();
-        }
-    }
+   public boolean isOn() {
+      return this.state;
+   }
 
-    public void enable() {
-        if (this.state) {
-            return;
-        }
-        if (!Module.nullCheck() && this.drawn.getValue() && ClientSetting.INSTANCE.toggle.getValue()) {
+   public boolean isOff() {
+      return !this.isOn();
+   }
+
+   public void toggle() {
+      if (this.isOn()) {
+         this.disable();
+      } else {
+         this.enable();
+      }
+
+   }
+
+   public void enable() {
+      if (!this.state) {
+         if (!nullCheck() && this.drawn.getValue() && ClientSetting.INSTANCE.toggle.getValue()) {
             int id = ClientSetting.INSTANCE.onlyOne.getValue() ? -1 : this.hashCode();
-            switch (ClientSetting.INSTANCE.messageStyle.getValue()) {
-                case Mio: {
-                    CommandManager.sendMessageId("\u00a72[+] \u00a7f" + this.getDisplayName(), id);
-                    break;
-                }
-                case Debug: {
-                    CommandManager.sendMessageId(this.getCategory().name().toLowerCase() + "." + this.getDisplayName().toLowerCase() + ".\u00a7aenable", id);
-                    break;
-                }
-                case Lowercase: {
-                    CommandManager.sendMessageId(this.getDisplayName().toLowerCase() + " \u00a7aenabled", id);
-                    break;
-                }
-                case Melon: {
-                    CommandManager.sendMessageId("\u00a7b" + this.getDisplayName() + " \u00a7aEnabled.", id);
-                    break;
-                }
-                case Normal: {
-                    CommandManager.sendMessageId("\u00a7f" + this.getDisplayName() + " \u00a7aEnabled", id);
-                    break;
-                }
-                case Future: {
-                    CommandManager.sendMessageId("\u00a77" + this.getDisplayName() + " toggled \u00a7aon", id);
-                    break;
-                }
-                case Chinese: {
-                    CommandManager.sendMessageId(this.getDisplayName() + " \u00a7a\u5f00\u542f", id);
-                    break;
-                }
-                case Moon: {
-                    CommandManager.sendChatMessageWidthIdNoSync("\u00a7f[\u00a7b" + ClientSetting.INSTANCE.hackName.getValue() + "\u00a7f] [\u00a73" + this.getDisplayName() + "\u00a7f] \u00a77toggled \u00a7aon", id);
-                    break;
-                }
-                case Earth: {
-                    CommandManager.sendChatMessageWidthIdNoSync("\u00a7l" + this.getDisplayName() + " \u00a7aenabled.", id);
-                }
+            switch ((ClientSetting.Style)ClientSetting.INSTANCE.messageStyle.getValue()) {
+               case Mio -> CommandManager.sendMessageId("§2[+] §f" + this.getDisplayName(), id);
+               case Debug -> CommandManager.sendMessageId(this.getCategory().name().toLowerCase() + "." + this.getDisplayName().toLowerCase() + ".§aenable", id);
+               case Lowercase -> CommandManager.sendMessageId(this.getDisplayName().toLowerCase() + " §aenabled", id);
+               case Melon -> CommandManager.sendMessageId("§b" + this.getDisplayName() + " §aEnabled.", id);
+               case Normal -> CommandManager.sendMessageId("§f" + this.getDisplayName() + " §aEnabled", id);
+               case Future -> CommandManager.sendMessageId("§7" + this.getDisplayName() + "§7 toggled §aon", id);
+               case Chinese -> CommandManager.sendMessageId(this.getDisplayName() + " §a开启", id);
+               case Moon -> CommandManager.sendChatMessageWidthIdNoSync("§f[§b" + ClientSetting.INSTANCE.hackName.getValue() + "§f] [§3" + this.getDisplayName() + "§f] §7toggled §aon", id);
+               case Earth -> CommandManager.sendChatMessageWidthIdNoSync("§l" + this.getDisplayName() + " §aenabled.", id);
             }
-        }
-        if (Arc.MODULE != null) {
+         }
+
+         if (Arc.MODULE != null) {
             Arc.MODULE.showToggleBanner(this, true);
-        }
-        this.state = true;
-        Arc.EVENT_BUS.subscribe(this);
-        this.onToggle();
-        this.onEnable();
-    }
+         }
 
-    public void disable() {
-        if (!this.state) {
-            return;
-        }
-        if (!Module.nullCheck() && this.drawn.getValue() && ClientSetting.INSTANCE.toggle.getValue()) {
+         this.state = true;
+         Arc.EVENT_BUS.subscribe(this);
+         this.onToggle();
+         this.onEnable();
+      }
+   }
+
+   public void disable() {
+      if (this.state) {
+         if (!nullCheck() && this.drawn.getValue() && ClientSetting.INSTANCE.toggle.getValue()) {
             int id = ClientSetting.INSTANCE.onlyOne.getValue() ? -1 : this.hashCode();
-            switch (ClientSetting.INSTANCE.messageStyle.getValue()) {
-                case Mio: {
-                    CommandManager.sendMessageId("\u00a74[-] \u00a7f" + this.getDisplayName(), id);
-                    break;
-                }
-                case Debug: {
-                    CommandManager.sendMessageId(this.getCategory().name().toLowerCase() + "." + this.getDisplayName().toLowerCase() + ".\u00a7cdisable", id);
-                    break;
-                }
-                case Lowercase: {
-                    CommandManager.sendMessageId(this.getDisplayName().toLowerCase() + " \u00a7cdisabled", id);
-                    break;
-                }
-                case Normal: {
-                    CommandManager.sendMessageId("\u00a7f" + this.getDisplayName() + " \u00a7cDisabled", id);
-                    break;
-                }
-                case Melon: {
-                    CommandManager.sendMessageId("\u00a7b" + this.getDisplayName() + " \u00a7cDisabled.", id);
-                    break;
-                }
-                case Future: {
-                    CommandManager.sendMessageId("\u00a77" + this.getDisplayName() + " toggled \u00a7coff", id);
-                    break;
-                }
-                case Earth: {
-                    CommandManager.sendChatMessageWidthIdNoSync("\u00a7l" + this.getDisplayName() + " \u00a7cdisabled.", id);
-                    break;
-                }
-                case Chinese: {
-                    CommandManager.sendMessageId(this.getDisplayName() + " \u00a7c\u5173\u95ed", id);
-                    break;
-                }
-                case Moon: {
-                    CommandManager.sendChatMessageWidthIdNoSync("\u00a7f[\u00a7b" + ClientSetting.INSTANCE.hackName.getValue() + "\u00a7f] [\u00a73" + this.getDisplayName() + "\u00a7f] \u00a77toggled \u00a7coff", id);
-                }
+            switch ((ClientSetting.Style)ClientSetting.INSTANCE.messageStyle.getValue()) {
+               case Mio -> CommandManager.sendMessageId("§4[-] §f" + this.getDisplayName(), id);
+               case Debug -> CommandManager.sendMessageId(this.getCategory().name().toLowerCase() + "." + this.getDisplayName().toLowerCase() + ".§cdisable", id);
+               case Lowercase -> CommandManager.sendMessageId(this.getDisplayName().toLowerCase() + " §cdisabled", id);
+               case Melon -> CommandManager.sendMessageId("§b" + this.getDisplayName() + " §cDisabled.", id);
+               case Normal -> CommandManager.sendMessageId("§f" + this.getDisplayName() + " §cDisabled", id);
+               case Future -> CommandManager.sendMessageId("§7" + this.getDisplayName() + " toggled §coff", id);
+               case Chinese -> CommandManager.sendMessageId(this.getDisplayName() + " §c关闭", id);
+               case Moon -> CommandManager.sendChatMessageWidthIdNoSync("§f[§b" + ClientSetting.INSTANCE.hackName.getValue() + "§f] [§3" + this.getDisplayName() + "§f] §7toggled §coff", id);
+               case Earth -> CommandManager.sendChatMessageWidthIdNoSync("§l" + this.getDisplayName() + " §cdisabled.", id);
             }
-        }
-        if (Arc.MODULE != null) {
+         }
+
+         if (Arc.MODULE != null) {
             Arc.MODULE.showToggleBanner(this, false);
-        }
-        this.state = false;
-        Arc.EVENT_BUS.unsubscribe(this);
-        this.onToggle();
-        this.onDisable();
-    }
+         }
 
-    public void sendMessage(String message) {
-        CommandManager.sendMessage(message);
-    }
+         this.state = false;
+         Arc.EVENT_BUS.unsubscribe(this);
+         this.onToggle();
+         this.onDisable();
+      }
+   }
 
-    public void setState(boolean state) {
-        if (this.state == state) {
-            return;
-        }
-        if (state) {
+   public void sendMessage(String message) {
+      CommandManager.sendMessage(message);
+   }
+
+   public void setState(boolean state) {
+      if (this.state != state) {
+         if (state) {
             this.enable();
-        } else {
+         } else {
             this.disable();
-        }
-    }
+         }
 
-    public boolean setBind(String rkey) {
-        int key;
-        if (rkey.equalsIgnoreCase("none")) {
-            this.bindSetting.setValue(-1);
-            return true;
-        }
-        try {
-            key = InputUtil.fromTranslationKey((String)("key.keyboard." + rkey.toLowerCase())).getCode();
-        }
-        catch (NumberFormatException e) {
-            if (!Module.nullCheck()) {
-                this.sendMessage("\u00a74Bad bind!");
+      }
+   }
+
+   public boolean setBind(String rkey) {
+      if (rkey.equalsIgnoreCase("none")) {
+         this.bindSetting.setValue(-1);
+         return true;
+      } else {
+         int key;
+         try {
+            key = InputUtil.fromTranslationKey("key.keyboard." + rkey.toLowerCase()).getCode();
+         } catch (NumberFormatException var4) {
+            if (!nullCheck()) {
+               this.sendMessage("§4Bad bind!");
             }
+
             return false;
-        }
-        if (rkey.equalsIgnoreCase("none")) {
+         }
+
+         if (rkey.equalsIgnoreCase("none")) {
             key = -1;
-        }
-        if (key == 0) {
+         }
+
+         if (key == 0) {
             return false;
-        }
-        this.bindSetting.setValue(key);
-        return true;
-    }
+         } else {
+            this.bindSetting.setValue(key);
+            return true;
+         }
+      }
+   }
 
-    public void onDisable() {
-    }
+   public void onDisable() {
+   }
 
-    public void onEnable() {
-    }
+   public void onEnable() {
+   }
 
-    public void onToggle() {
-    }
+   public void onToggle() {
+   }
 
-    public void onLogin() {
-    }
+   /** SHIFT+左键把本模块设置重置为默认值后调用，用于让模块自己重新应用内部状态。 */
+   public void onSettingsReset() {
+   }
 
-    public void onLogout() {
-    }
+   public void onLogin() {
+   }
 
-    public void onRender2D(DrawContext drawContext, float tickDelta) {
-    }
+   public void onLogout() {
+   }
 
-    public void onRender3D(MatrixStack matrixStack) {
-    }
+   public void onRender2D(DrawContext drawContext, float tickDelta) {
+   }
 
-    public void addSetting(Setting setting) {
-        this.settings.add(setting);
-    }
+   public void onRender3D(MatrixStack matrixStack) {
+   }
 
-    public StringSetting add(StringSetting setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public void addSetting(Setting setting) {
+      this.settings.add(setting);
+   }
 
-    public ColorSetting add(ColorSetting setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public StringSetting add(StringSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public SliderSetting add(SliderSetting setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public ColorSetting add(ColorSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public BooleanSetting add(BooleanSetting setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public SliderSetting add(SliderSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public <T extends Enum<T>> EnumSetting<T> add(EnumSetting<T> setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public BooleanSetting add(BooleanSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public BindSetting add(BindSetting setting) {
-        this.addSetting(setting);
-        return setting;
-    }
+   public <T extends Enum<T>> EnumSetting<T> add(EnumSetting<T> setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public List<Setting> getSettings() {
-        return this.settings;
-    }
+   public BindSetting add(BindSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
 
-    public static boolean nullCheck() {
-        return Module.mc.player == null || Module.mc.player.input == null || Module.mc.world == null;
-    }
+   public List<Setting> getSettings() {
+      return this.settings;
+   }
 
-    public static void sendSequencedPacket(SequencedPacketCreator packetCreator) {
-        if (mc.getNetworkHandler() == null || Module.mc.world == null) {
-            return;
-        }
-        try (PendingUpdateManager pendingUpdateManager = Module.mc.world.getPendingUpdateManager().incrementSequence();){
+   public static boolean nullCheck() {
+      return mc.player == null || mc.player.input == null || mc.world == null;
+   }
+
+   public static void sendSequencedPacket(SequencedPacketCreator packetCreator) {
+      if (mc.getNetworkHandler() != null && mc.world != null) {
+         PendingUpdateManager pendingUpdateManager = mc.world.getPendingUpdateManager().incrementSequence();
+
+         try {
             int i = pendingUpdateManager.getSequence();
             mc.getNetworkHandler().sendPacket(packetCreator.predict(i));
-        }
-    }
-
-    public static enum Category {
-        Combat{
-
-            @Override
-            public String getIcon() {
-                return "b";
+         } catch (Throwable var5) {
+            if (pendingUpdateManager != null) {
+               try {
+                  pendingUpdateManager.close();
+               } catch (Throwable var4) {
+                  var5.addSuppressed(var4);
+               }
             }
-        }
-        ,
-        Misc{
 
-            @Override
-            public String getIcon() {
-                return "[";
-            }
-        }
-        ,
-        Render{
+            throw var5;
+         }
 
-            @Override
-            public String getIcon() {
-                return "a";
-            }
-        }
-        ,
-        Movement{
+         if (pendingUpdateManager != null) {
+            pendingUpdateManager.close();
+         }
 
-            @Override
-            public String getIcon() {
-                return "8";
-            }
-        }
-        ,
-        Player{
+      }
+   }
 
-            @Override
-            public String getIcon() {
-                return "5";
-            }
-        }
-        ,
-        Exploit{
+   public static enum Category {
+      Combat {
+         public String getIcon() {
+            return "b";
+         }
+      },
+      Misc {
+         public String getIcon() {
+            return "[";
+         }
+      },
+      Render {
+         public String getIcon() {
+            return "a";
+         }
+      },
+      Movement {
+         public String getIcon() {
+            return "8";
+         }
+      },
+      Player {
+         public String getIcon() {
+            return "5";
+         }
+      },
+      Exploit {
+         public String getIcon() {
+            return "6";
+         }
+      },
+      Client {
+         public String getIcon() {
+            return "7";
+         }
+      };
 
-            @Override
-            public String getIcon() {
-                return "6";
-            }
-        }
-        ,
-        Client{
+      public abstract String getIcon();
 
-            @Override
-            public String getIcon() {
-                return "7";
-            }
-        };
-
-
-        public abstract String getIcon();
-
-        public String getDisplayName() {
-            if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.chinese.getValue()) {
-                switch (this) {
-                    case Combat: {
-                        return "战斗类";
-                    }
-                    case Misc: {
-                        return "杂项";
-                    }
-                    case Render: {
-                        return "渲染类";
-                    }
-                    case Movement: {
-                        return "移动类";
-                    }
-                    case Player: {
-                        return "玩家类";
-                    }
-                    case Exploit: {
-                        return "漏洞类";
-                    }
-                    case Client: {
-                        return "客户端类";
-                    }
-                }
-            }
-            return this.name();
-        }
-    }
+      // $FF: synthetic method
+      private static Category[] $values() {
+         return new Category[]{Combat, Misc, Render, Movement, Player, Exploit, Client};
+      }
+   }
 }

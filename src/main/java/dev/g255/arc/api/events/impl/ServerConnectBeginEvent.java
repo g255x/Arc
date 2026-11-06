@@ -1,24 +1,16 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.network.ServerAddress
- *  net.minecraft.client.network.ServerInfo
- */
 package dev.g255.arc.api.events.impl;
 
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
 
 public class ServerConnectBeginEvent {
-    private static final ServerConnectBeginEvent INSTANCE = new ServerConnectBeginEvent();
-    public ServerAddress address;
-    public ServerInfo info;
+   private static final ServerConnectBeginEvent INSTANCE = new ServerConnectBeginEvent();
+   public ServerAddress address;
+   public ServerInfo info;
 
-    public static ServerConnectBeginEvent get(ServerAddress address, ServerInfo info) {
-        ServerConnectBeginEvent.INSTANCE.address = address;
-        ServerConnectBeginEvent.INSTANCE.info = info;
-        return INSTANCE;
-    }
+   public static ServerConnectBeginEvent get(ServerAddress address, ServerInfo info) {
+      INSTANCE.address = address;
+      INSTANCE.info = info;
+      return INSTANCE;
+   }
 }
-

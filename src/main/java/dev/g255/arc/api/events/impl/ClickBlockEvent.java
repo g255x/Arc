@@ -1,38 +1,29 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.util.math.BlockPos
- *  net.minecraft.util.math.Direction
- */
 package dev.g255.arc.api.events.impl;
 
 import dev.g255.arc.api.events.Event;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
-public class ClickBlockEvent
-extends Event {
-    private BlockPos pos;
-    private Direction direction;
-    private static final ClickBlockEvent INSTANCE = new ClickBlockEvent();
+public class ClickBlockEvent extends Event {
+   private BlockPos pos;
+   private Direction direction;
+   private static final ClickBlockEvent INSTANCE = new ClickBlockEvent();
 
-    private ClickBlockEvent() {
-    }
+   private ClickBlockEvent() {
+   }
 
-    public Direction getDirection() {
-        return this.direction;
-    }
+   public Direction getDirection() {
+      return this.direction;
+   }
 
-    public BlockPos getPos() {
-        return this.pos;
-    }
+   public BlockPos getPos() {
+      return this.pos;
+   }
 
-    public static ClickBlockEvent get(BlockPos pos, Direction direction) {
-        ClickBlockEvent.INSTANCE.pos = pos;
-        ClickBlockEvent.INSTANCE.direction = direction;
-        INSTANCE.setCancelled(false);
-        return INSTANCE;
-    }
+   public static ClickBlockEvent get(BlockPos pos, Direction direction) {
+      INSTANCE.pos = pos;
+      INSTANCE.direction = direction;
+      INSTANCE.setCancelled(false);
+      return INSTANCE;
+   }
 }
-

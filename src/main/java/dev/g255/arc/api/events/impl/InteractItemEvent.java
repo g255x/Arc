@@ -1,33 +1,25 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.util.Hand
- */
 package dev.g255.arc.api.events.impl;
 
 import dev.g255.arc.api.events.Event;
 import net.minecraft.util.Hand;
 
-public class InteractItemEvent
-extends Event {
-    private static final InteractItemEvent INSTANCE = new InteractItemEvent();
-    public Hand hand;
+public class InteractItemEvent extends Event {
+   private static final InteractItemEvent INSTANCE = new InteractItemEvent();
+   public Hand hand;
 
-    private InteractItemEvent() {
-    }
+   private InteractItemEvent() {
+   }
 
-    public static InteractItemEvent getPre(Hand hand) {
-        InteractItemEvent.INSTANCE.hand = hand;
-        InteractItemEvent.INSTANCE.stage = Event.Stage.Pre;
-        INSTANCE.setCancelled(false);
-        return INSTANCE;
-    }
+   public static InteractItemEvent getPre(Hand hand) {
+      INSTANCE.hand = hand;
+      INSTANCE.stage = Event.Stage.Pre;
+      INSTANCE.setCancelled(false);
+      return INSTANCE;
+   }
 
-    public static InteractItemEvent getPost(Hand hand) {
-        InteractItemEvent.INSTANCE.hand = hand;
-        InteractItemEvent.INSTANCE.stage = Event.Stage.Post;
-        return INSTANCE;
-    }
+   public static InteractItemEvent getPost(Hand hand) {
+      INSTANCE.hand = hand;
+      INSTANCE.stage = Event.Stage.Post;
+      return INSTANCE;
+   }
 }
-

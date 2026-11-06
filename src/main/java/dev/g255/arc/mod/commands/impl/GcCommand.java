@@ -1,25 +1,18 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.mod.commands.impl;
 
 import dev.g255.arc.mod.commands.Command;
 import java.util.List;
 
-public class GcCommand
-extends Command {
-    public GcCommand() {
-        super("gc", "");
-    }
+public class GcCommand extends Command {
+   public GcCommand() {
+      super("gc", "");
+   }
 
-    @Override
-    public void runCommand(String[] parameters) {
-        System.gc();
-    }
+   public void runCommand(String[] parameters) {
+      System.gc();
+   }
 
-    @Override
-    public String[] getAutocorrect(int count, List<String> seperated) {
-        return null;
-    }
+   public String[] getAutocorrect(int count, List<String> seperated) {
+      return null;
+   }
 }
-

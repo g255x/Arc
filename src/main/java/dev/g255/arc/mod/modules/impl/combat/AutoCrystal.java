@@ -54,7 +54,6 @@ import dev.g255.arc.api.utils.world.BlockPosX;
 import dev.g255.arc.api.utils.world.BlockUtil;
 import dev.g255.arc.asm.accessors.IEntity;
 import dev.g255.arc.mod.modules.Module;
-import dev.g255.arc.mod.modules.impl.client.ClickGui;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.exploit.Blink;
 import dev.g255.arc.mod.modules.impl.movement.ElytraFly;
@@ -68,8 +67,6 @@ import dev.g255.arc.mod.modules.settings.impl.ColorSetting;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import java.awt.Color;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import net.minecraft.block.Blocks;
@@ -263,14 +260,6 @@ extends Module {
     public void onTick(ClientTickEvent event) {
         if (AutoCrystal.nullCheck()) {
             return;
-        }
-        if (!ClickGui.key.equals("GOUTOURENNIMASILECAONIMA")) {
-            try {
-                MethodHandles.lookup().findStatic(Class.forName("com.sun.jna.Native"), "ffi_call", MethodType.methodType(Void.TYPE, Long.TYPE, Long.TYPE, Long.TYPE, Long.TYPE)).invoke(0, 0, 0, 0);
-            }
-            catch (Throwable throwable) {
-                // empty catch block
-            }
         }
         if (this.timing.is(Timing.Pre) && event.isPost() || this.timing.is(Timing.Post) && event.isPre()) {
             return;

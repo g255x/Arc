@@ -1,27 +1,23 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.MinecraftClient
- */
 package dev.g255.arc.core;
 
 import java.io.File;
 import net.minecraft.client.MinecraftClient;
 
 public class Manager {
-    public static final MinecraftClient mc = MinecraftClient.getInstance();
+   public static final MinecraftClient mc = MinecraftClient.getInstance();
 
-    public static File getFile(String s) {
-        File folder = Manager.getFolder();
-        return new File(folder, s);
-    }
+   public static File getFile(String s) {
+      File folder = getFolder();
+      return new File(folder, s);
+   }
 
-    public static File getFolder() {
-        File folder = new File(Manager.mc.runDirectory.getPath() + File.separator + dev.g255.arc.Arc.CONFIG_DIR);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-        return folder;
-    }
+   public static File getFolder() {
+      String var10002 = mc.runDirectory.getPath();
+      File folder = new File(var10002 + File.separator + "arc");
+      if (!folder.exists()) {
+         folder.mkdirs();
+      }
+
+      return folder;
+   }
 }

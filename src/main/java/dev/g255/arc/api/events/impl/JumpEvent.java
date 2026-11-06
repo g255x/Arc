@@ -1,20 +1,15 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.events.impl;
 
 import dev.g255.arc.api.events.Event;
 
-public class JumpEvent
-extends Event {
-    private static final JumpEvent instance = new JumpEvent();
+public class JumpEvent extends Event {
+   private static final JumpEvent instance = new JumpEvent();
 
-    private JumpEvent() {
-    }
+   private JumpEvent() {
+   }
 
-    public static JumpEvent get(Event.Stage stage) {
-        JumpEvent.instance.stage = stage;
-        return instance;
-    }
+   public static JumpEvent get(Event.Stage stage) {
+      instance.stage = stage;
+      return instance;
+   }
 }
-

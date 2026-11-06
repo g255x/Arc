@@ -1,9 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.util.math.Vec3d
- */
 package dev.g255.arc.mod.commands.impl;
 
 import dev.g255.arc.core.impl.RotationManager;
@@ -12,89 +6,92 @@ import java.text.DecimalFormat;
 import java.util.List;
 import net.minecraft.util.math.Vec3d;
 
-public class AimCommand
-extends Command {
-    public AimCommand() {
-        super("aim", "[x] [y] [z]");
-    }
+public class AimCommand extends Command {
+   public AimCommand() {
+      super("aim", "[x] [y] [z]");
+   }
 
-    /*
-     * Enabled aggressive block sorting
-     */
-    @Override
-    public void runCommand(String[] parameters) {
-        double z;
-        double y;
-        double x;
-        if (parameters.length != 3) {
-            this.sendUsage();
-            return;
-        }
-        if (this.isNumeric(parameters[0])) {
+   public void runCommand(String[] parameters) {
+      if (parameters.length != 3) {
+         this.sendUsage();
+      } else {
+         double x;
+         if (this.isNumeric(parameters[0])) {
             x = Double.parseDouble(parameters[0]);
-        } else {
+         } else {
             if (!parameters[0].startsWith("~")) {
-                this.sendUsage();
-                return;
+               this.sendUsage();
+               return;
             }
+
             if (this.isNumeric(parameters[0].replace("~", ""))) {
-                x = AimCommand.mc.player.getX() + Double.parseDouble(parameters[0].replace("~", ""));
+               x = mc.player.getX() + Double.parseDouble(parameters[0].replace("~", ""));
             } else {
-                if (!parameters[0].replace("~", "").isEmpty()) {
-                    this.sendUsage();
-                    return;
-                }
-                x = AimCommand.mc.player.getX();
+               if (!parameters[0].replace("~", "").isEmpty()) {
+                  this.sendUsage();
+                  return;
+               }
+
+               x = mc.player.getX();
             }
-        }
-        if (this.isNumeric(parameters[1])) {
+         }
+
+         double y;
+         if (this.isNumeric(parameters[1])) {
             y = Double.parseDouble(parameters[1]);
-        } else {
+         } else {
             if (!parameters[1].startsWith("~")) {
-                this.sendUsage();
-                return;
+               this.sendUsage();
+               return;
             }
+
             if (this.isNumeric(parameters[1].replace("~", ""))) {
-                y = AimCommand.mc.player.getY() + Double.parseDouble(parameters[1].replace("~", ""));
+               y = mc.player.getY() + Double.parseDouble(parameters[1].replace("~", ""));
             } else {
-                if (!parameters[1].replace("~", "").isEmpty()) {
-                    this.sendUsage();
-                    return;
-                }
-                y = AimCommand.mc.player.getY();
+               if (!parameters[1].replace("~", "").isEmpty()) {
+                  this.sendUsage();
+                  return;
+               }
+
+               y = mc.player.getY();
             }
-        }
-        if (this.isNumeric(parameters[2])) {
+         }
+
+         double z;
+         if (this.isNumeric(parameters[2])) {
             z = Double.parseDouble(parameters[2]);
-        } else {
+         } else {
             if (!parameters[2].startsWith("~")) {
-                this.sendUsage();
-                return;
+               this.sendUsage();
+               return;
             }
+
             if (this.isNumeric(parameters[2].replace("~", ""))) {
-                z = AimCommand.mc.player.getZ() + Double.parseDouble(parameters[2].replace("~", ""));
+               z = mc.player.getZ() + Double.parseDouble(parameters[2].replace("~", ""));
             } else {
-                if (!parameters[2].replace("~", "").isEmpty()) {
-                    this.sendUsage();
-                    return;
-                }
-                z = AimCommand.mc.player.getZ();
+               if (!parameters[2].replace("~", "").isEmpty()) {
+                  this.sendUsage();
+                  return;
+               }
+
+               z = mc.player.getZ();
             }
-        }
-        float[] angle = RotationManager.getRotation(new Vec3d(x, y, z));
-        AimCommand.mc.player.setYaw(angle[0]);
-        AimCommand.mc.player.setPitch(angle[1]);
-        DecimalFormat df = new DecimalFormat("0.0");
-        this.sendChatMessage("\u00a7fAim to \u00a7eX:" + df.format(x) + " Y:" + df.format(y) + " Z:" + df.format(z));
-    }
+         }
 
-    private boolean isNumeric(String str) {
-        return str.matches("-?\\d+(\\.\\d+)?");
-    }
+         float[] angle = RotationManager.getRotation(new Vec3d(x, y, z));
+         mc.player.setYaw(angle[0]);
+         mc.player.setPitch(angle[1]);
+         DecimalFormat df = new DecimalFormat("0.0");
+         String var10001 = df.format(x);
+         this.sendChatMessage("§fAim to §eX:" + var10001 + " Y:" + df.format(y) + " Z:" + df.format(z));
+      }
+   }
 
-    @Override
-    public String[] getAutocorrect(int count, List<String> seperated) {
-        return new String[]{"~ "};
-    }
+   private boolean isNumeric(String str) {
+      return str.matches("-?\\d+(\\.\\d+)?");
+   }
+
+   public String[] getAutocorrect(int count, List<String> seperated) {
+      return new String[]{"~ "};
+   }
 }
-

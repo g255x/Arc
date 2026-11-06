@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.DrawContext
- *  net.minecraft.client.sound.PositionedSoundInstance
- *  net.minecraft.client.sound.SoundInstance
- *  net.minecraft.registry.entry.RegistryEntry
- *  net.minecraft.sound.SoundEvents
- */
 package dev.g255.arc.mod.gui.items;
 
 import dev.g255.arc.api.utils.math.Animation;
@@ -17,126 +7,122 @@ import dev.g255.arc.mod.Mod;
 import dev.g255.arc.mod.modules.impl.client.ClickGui;
 import java.awt.Color;
 import java.util.Objects;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.sound.SoundEvents;
 
-public class Item
-extends Mod {
-    public static DrawContext context;
-    protected float x;
-    protected float y;
-    protected int width;
-    protected int height;
-    private boolean hidden;
-    private final Animation visibleHeightAnimation = new Animation();
+public class Item extends Mod {
+   public static DrawContext context;
+   protected float x;
+   protected float y;
+   protected int width;
+   protected int height;
+   private boolean hidden;
+   private final Animation visibleHeightAnimation = new Animation();
 
-    public Item(String name) {
-        super(name);
-    }
+   public Item(String name) {
+      super(name);
+   }
 
-    public void setLocation(float x, float y) {
-        this.x = x;
-        this.y = y;
-    }
+   public void setLocation(float x, float y) {
+      this.x = x;
+      this.y = y;
+   }
 
-    public static void sound() {
-        if (ClickGui.getInstance().sound.getValue()) {
-            mc.getSoundManager().play((SoundInstance)PositionedSoundInstance.master((RegistryEntry)SoundEvents.UI_BUTTON_CLICK, (float)ClickGui.getInstance().soundPitch.getValueFloat()));
-        }
-    }
+   public static void sound() {
+      if (ClickGui.getInstance().sound.getValue()) {
+         mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, ClickGui.getInstance().soundPitch.getValueFloat()));
+      }
 
-    public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
-    }
+   }
 
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-    }
+   public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
+   }
 
-    public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
-    }
+   public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+   }
 
-    public void update() {
-    }
+   public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
+   }
 
-    public void onKeyTyped(char typedChar, int keyCode) {
-    }
+   public void update() {
+   }
 
-    public void onKeyPressed(int key) {
-    }
+   public void onKeyTyped(char typedChar, int keyCode) {
+   }
 
-    public float getX() {
-        return this.x;
-    }
+   public void onKeyPressed(int key) {
+   }
 
-    public float getY() {
-        return this.y;
-    }
+   public float getX() {
+      return this.x;
+   }
 
-    public int getWidth() {
-        return this.width;
-    }
+   public float getY() {
+      return this.y;
+   }
 
-    public void setWidth(int width) {
-        this.width = width;
-    }
+   public int getWidth() {
+      return this.width;
+   }
 
-    public int getHeight() {
-        return this.height;
-    }
+   public void setWidth(int width) {
+      this.width = width;
+   }
 
-    public void setHeight(int height) {
-        this.height = height;
-    }
+   public int getHeight() {
+      return this.height;
+   }
 
-    public boolean isHidden() {
-        return this.hidden;
-    }
+   public void setHeight(int height) {
+      this.height = height;
+   }
 
-    public void setHidden(boolean hidden) {
-        this.hidden = hidden;
-    }
+   public boolean isHidden() {
+      return this.hidden;
+   }
 
-    public double getVisibleHeight() {
-        double target = this.hidden ? 0.0 : (double)this.getHeight();
-        return this.visibleHeightAnimation.get(target, 200L, Easing.CubicInOut);
-    }
+   public void setHidden(boolean hidden) {
+      this.hidden = hidden;
+   }
 
-    protected double getColorDelay() {
-        return (double)this.y / 10.0;
-    }
+   public double getVisibleHeight() {
+      double target = this.hidden ? (double)0.0F : (double)this.getHeight();
+      return this.visibleHeightAnimation.get(target, 200L, Easing.CubicInOut);
+   }
 
-    protected void drawString(String text, double x, double y, Color color) {
-        this.drawString(text, x, y, color.hashCode());
-    }
+   protected double getColorDelay() {
+      return (double)this.y / (double)10.0F;
+   }
 
-    protected void drawString(String text, double x, double y, int color) {
-        boolean shadow = FontManager.isShadowEnabled();
-        if (FontManager.isCustomFontEnabled()) {
-            FontManager.ui.drawString(context.getMatrices(), text, (double)((int)x), (double)((int)y), color, shadow);
-        } else {
-            context.drawText(Item.mc.textRenderer, text, (int)x, (int)y, color, shadow);
-        }
-    }
+   protected void drawString(String text, double x, double y, Color color) {
+      this.drawString(text, x, y, color.hashCode());
+   }
 
-    protected int getFontHeight() {
-        if (FontManager.isCustomFontEnabled()) {
-            return (int)FontManager.ui.getFontHeight();
-        }
-        Objects.requireNonNull(Item.mc.textRenderer);
-        return 9;
-    }
+   protected void drawString(String text, double x, double y, int color) {
+      boolean shadow = FontManager.isShadowEnabled();
+      if (FontManager.isCustomFontEnabled()) {
+         FontManager.ui.drawString(context.getMatrices(), text, (double)((int)x), (double)((int)y), color, shadow);
+      } else {
+         context.drawText(mc.textRenderer, text, (int)x, (int)y, color, shadow);
+      }
 
-    protected float getCenteredTextY(float baseY, float boxHeight) {
-        return baseY + (boxHeight - (float)this.getFontHeight()) / 2.0f + (float)ClickGui.getInstance().textOffset.getValueInt();
-    }
+   }
 
-    protected int getWidth(String s) {
-        if (FontManager.isCustomFontEnabled()) {
-            return (int)FontManager.ui.getWidth(s);
-        }
-        return Item.mc.textRenderer.getWidth(s);
-    }
+   protected int getFontHeight() {
+      if (FontManager.isCustomFontEnabled()) {
+         return (int)FontManager.ui.getFontHeight();
+      } else {
+         Objects.requireNonNull(mc.textRenderer);
+         return 9;
+      }
+   }
+
+   protected float getCenteredTextY(float baseY, float boxHeight) {
+      return baseY + (boxHeight - (float)this.getFontHeight()) / 2.0F + (float)ClickGui.getInstance().textOffset.getValueInt();
+   }
+
+   protected int getWidth(String s) {
+      return FontManager.isCustomFontEnabled() ? (int)FontManager.ui.getWidth(s) : mc.textRenderer.getWidth(s);
+   }
 }
-

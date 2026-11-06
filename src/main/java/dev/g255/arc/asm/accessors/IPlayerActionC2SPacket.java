@@ -1,19 +1,19 @@
 package dev.g255.arc.asm.accessors;
 
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(PlayerActionC2SPacket.class)
+@Mixin({PlayerActionC2SPacket.class})
 public interface IPlayerActionC2SPacket {
-    @Accessor("pos")
-    BlockPos getPos();
+   @Accessor("pos")
+   BlockPos getPos();
 
-    @Accessor("direction")
-    Direction getDirection();
+   @Accessor("direction")
+   Direction getDirection();
 
-    @Accessor("action")
-    PlayerActionC2SPacket.Action getAction();
+   @Accessor("action")
+   PlayerActionC2SPacket.Action getAction();
 }

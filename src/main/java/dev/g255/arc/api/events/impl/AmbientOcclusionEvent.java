@@ -1,18 +1,14 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.events.impl;
 
 public class AmbientOcclusionEvent {
-    private static final AmbientOcclusionEvent INSTANCE = new AmbientOcclusionEvent();
-    public float lightLevel = -1.0f;
+   private static final AmbientOcclusionEvent INSTANCE = new AmbientOcclusionEvent();
+   public float lightLevel = -1.0F;
 
-    private AmbientOcclusionEvent() {
-    }
+   private AmbientOcclusionEvent() {
+   }
 
-    public static AmbientOcclusionEvent get() {
-        AmbientOcclusionEvent.INSTANCE.lightLevel = -1.0f;
-        return INSTANCE;
-    }
+   public static AmbientOcclusionEvent get() {
+      INSTANCE.lightLevel = -1.0F;
+      return INSTANCE;
+   }
 }
-

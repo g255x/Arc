@@ -1,12 +1,12 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.mod.modules.settings.enums;
 
 public enum Timing {
-    All,
-    Pre,
-    Post;
+   All,
+   Pre,
+   Post;
 
+   // $FF: synthetic method
+   private static Timing[] $values() {
+      return new Timing[]{All, Pre, Post};
+   }
 }
-

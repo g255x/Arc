@@ -1,24 +1,24 @@
 package dev.g255.arc.asm.accessors;
 
-import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.client.model.ModelPart;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(PlayerEntityModel.class)
+@Mixin({PlayerEntityModel.class})
 public interface IPlayerEntityModel {
-    @Accessor("leftPants")
-    ModelPart getLeftPants();
+   @Accessor("leftPants")
+   ModelPart getLeftPants();
 
-    @Accessor("rightPants")
-    ModelPart getRightPants();
+   @Accessor("rightPants")
+   ModelPart getRightPants();
 
-    @Accessor("leftSleeve")
-    ModelPart getLeftSleeve();
+   @Accessor("leftSleeve")
+   ModelPart getLeftSleeve();
 
-    @Accessor("rightSleeve")
-    ModelPart getRightSleeve();
+   @Accessor("rightSleeve")
+   ModelPart getRightSleeve();
 
-    @Accessor("jacket")
-    ModelPart getJacket();
+   @Accessor("jacket")
+   ModelPart getJacket();
 }

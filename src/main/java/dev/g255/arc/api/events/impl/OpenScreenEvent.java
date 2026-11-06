@@ -1,26 +1,18 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.screen.Screen
- */
 package dev.g255.arc.api.events.impl;
 
 import dev.g255.arc.api.events.Event;
 import net.minecraft.client.gui.screen.Screen;
 
-public class OpenScreenEvent
-extends Event {
-    private static final OpenScreenEvent INSTANCE = new OpenScreenEvent();
-    public Screen screen;
+public class OpenScreenEvent extends Event {
+   private static final OpenScreenEvent INSTANCE = new OpenScreenEvent();
+   public Screen screen;
 
-    private OpenScreenEvent() {
-    }
+   private OpenScreenEvent() {
+   }
 
-    public static OpenScreenEvent get(Screen screen) {
-        OpenScreenEvent.INSTANCE.screen = screen;
-        INSTANCE.setCancelled(false);
-        return INSTANCE;
-    }
+   public static OpenScreenEvent get(Screen screen) {
+      INSTANCE.screen = screen;
+      INSTANCE.setCancelled(false);
+      return INSTANCE;
+   }
 }
-

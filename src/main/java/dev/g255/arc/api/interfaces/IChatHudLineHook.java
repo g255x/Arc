@@ -1,21 +1,17 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.interfaces;
 
 import dev.g255.arc.api.utils.math.FadeUtils;
 
 public interface IChatHudLineHook {
-    public int arcClient$getMessageId();
+   int arc$getMessageId();
 
-    public void arcClient$setMessageId(int var1);
+   void arc$setMessageId(int var1);
 
-    public boolean arcClient$getSync();
+   boolean arc$getSync();
 
-    public void arcClient$setSync(boolean var1);
+   void arc$setSync(boolean var1);
 
-    public FadeUtils arcClient$getFade();
+   FadeUtils arc$getFade();
 
-    public void arcClient$setFade(FadeUtils var1);
+   void arc$setFade(FadeUtils var1);
 }
-

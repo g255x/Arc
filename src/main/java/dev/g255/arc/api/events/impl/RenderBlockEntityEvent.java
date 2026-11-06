@@ -1,23 +1,15 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.block.entity.BlockEntity
- */
 package dev.g255.arc.api.events.impl;
 
 import dev.g255.arc.api.events.Event;
 import net.minecraft.block.entity.BlockEntity;
 
-public class RenderBlockEntityEvent
-extends Event {
-    private static final RenderBlockEntityEvent INSTANCE = new RenderBlockEntityEvent();
-    public BlockEntity blockEntity;
+public class RenderBlockEntityEvent extends Event {
+   private static final RenderBlockEntityEvent INSTANCE = new RenderBlockEntityEvent();
+   public BlockEntity blockEntity;
 
-    public static RenderBlockEntityEvent get(BlockEntity blockEntity) {
-        INSTANCE.setCancelled(false);
-        RenderBlockEntityEvent.INSTANCE.blockEntity = blockEntity;
-        return INSTANCE;
-    }
+   public static RenderBlockEntityEvent get(BlockEntity blockEntity) {
+      INSTANCE.setCancelled(false);
+      INSTANCE.blockEntity = blockEntity;
+      return INSTANCE;
+   }
 }
-

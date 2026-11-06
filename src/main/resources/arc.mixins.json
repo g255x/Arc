@@ -1,9 +1,12 @@
-﻿{
+{
   "required": true,
   "minVersion": "0.8",
   "package": "dev.g255.arc.asm",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "accessors.IAbstractTexture",
+    "accessors.IAnimalModel",
+    "accessors.IRenderLayer",
     "accessors.IChatHud",
     "accessors.IContainerComponent",
     "accessors.IEntity",
@@ -16,6 +19,7 @@
     "accessors.IHeldItemRenderer",
     "accessors.IClientPlayerEntity",
     "accessors.ILivingEntity",
+    "accessors.ILivingEntityRenderer",
     "accessors.IMinecraftClient",
     "accessors.IModelPart",
     "accessors.IModelPartCuboid",
@@ -30,7 +34,6 @@
     "accessors.IUpdateSelectedSlotC2SPacket",
     "accessors.IVec3d",
     "mixins.MixinAbstractBlockState",
-    "mixins.MixinAbstractHorseEntity",
     "mixins.MixinArmorFeatureRenderer",
     "mixins.MixinBackgroundRenderer",
     "mixins.MixinBiome",
@@ -49,6 +52,7 @@
     "mixins.MixinCobwebBlock",
     "mixins.MixinConnectScreen",
     "mixins.MixinDimensionEffects",
+    "mixins.MixinDownloadingTerrainScreen",
     "mixins.MixinDisconnectedScreen",
     "mixins.MixinEndCrystalEntityRenderer",
     "mixins.MixinEntity",
@@ -58,15 +62,15 @@
     "mixins.MixinGameRenderer",
     "mixins.MixinHandledScreen",
     "mixins.MixinHeldItemRenderer",
+    "mixins.MixinIcons",
     "mixins.MixinInGameHud",
     "mixins.MixinInGameOverlayRenderer",
     "mixins.MixinKeyboard",
     "mixins.MixinKeyboardInput",
-    "mixins.MixinLightStorage",
-    "mixins.MixinLightingProvider",
     "mixins.MixinLightmapTextureManager",
     "mixins.MixinLivingEntity",
     "mixins.MixinLivingEntityRenderer",
+    "mixins.MixinMessageScreen",
     "mixins.MixinMinecraftClient",
     "mixins.MixinMouse",
     "mixins.MixinParticle",
@@ -76,15 +80,17 @@
     "mixins.MixinScreen",
     "mixins.MixinShaderEffect",
     "mixins.MixinShulkerBoxBlock",
-    "mixins.sodium.SodiumBlockOcclusionCacheMixin",
-    "mixins.sodium.SodiumBlockRendererMixin",
-    "mixins.sodium.SodiumFluidRendererImplMixin",
     "mixins.MixinSoundSystem",
+    "mixins.MixinTitleScreen",
     "mixins.MixinTotemParticle",
     "mixins.MixinWorld",
+    "mixins.MixinCrystalChams",
+    "mixins.MixinLivingEntityChams",
+    "mixins.loadscreen.MixinLoadingOverlay",
     "mixins.MixinWorldRenderer"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "refmap": "arc-refmap.json"
 }

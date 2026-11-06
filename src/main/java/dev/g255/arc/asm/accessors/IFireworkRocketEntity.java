@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.entity.LivingEntity
- *  net.minecraft.entity.projectile.FireworkRocketEntity
- *  org.spongepowered.asm.mixin.Mixin
- *  org.spongepowered.asm.mixin.gen.Accessor
- *  org.spongepowered.asm.mixin.gen.Invoker
- */
 package dev.g255.arc.asm.accessors;
 
 import net.minecraft.entity.LivingEntity;
@@ -16,15 +6,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(value={FireworkRocketEntity.class})
+@Mixin({FireworkRocketEntity.class})
 public interface IFireworkRocketEntity {
-    @Accessor(value="shooter")
-    public LivingEntity getShooter();
+   @Accessor("shooter")
+   LivingEntity getShooter();
 
-    @Invoker(value="wasShotByEntity")
-    public boolean hookWasShotByEntity();
+   @Invoker("wasShotByEntity")
+   boolean hookWasShotByEntity();
 
-    @Invoker(value="explodeAndRemove")
-    public void hookExplodeAndRemove();
+   @Invoker("explodeAndRemove")
+   void hookExplodeAndRemove();
 }
-

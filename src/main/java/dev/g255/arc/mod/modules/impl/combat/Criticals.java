@@ -1,16 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.entity.Entity
- *  net.minecraft.entity.decoration.EndCrystalEntity
- *  net.minecraft.network.packet.Packet
- *  net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
- *  net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket$InteractType
- *  net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
- *  net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket$PositionAndOnGround
- *  net.minecraft.util.math.Box
- */
 package dev.g255.arc.mod.modules.impl.combat;
 
 import dev.g255.arc.api.events.eventbus.EventListener;
@@ -19,228 +6,232 @@ import dev.g255.arc.api.events.impl.UpdateEvent;
 import dev.g255.arc.api.utils.player.EntityUtil;
 import dev.g255.arc.api.utils.player.MovementUtil;
 import dev.g255.arc.api.utils.world.BlockUtil;
+import dev.g255.arc.asm.accessors.IPlayerInteractEntityC2SPacket;
 import dev.g255.arc.asm.accessors.IPlayerMoveC2SPacket;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.impl.exploit.Blink;
-import dev.g255.arc.mod.modules.impl.exploit.BowBomb;
 import dev.g255.arc.mod.modules.impl.exploit.Phase;
 import dev.g255.arc.mod.modules.impl.player.AutoPearl;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
+import net.minecraft.util.Hand;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.EndCrystalEntity;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.math.Box;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket.InteractType;
 
-public class Criticals
-extends Module {
-    public static Criticals INSTANCE;
-    public final EnumSetting<Mode> mode = this.add(new EnumSetting<Mode>("Mode", Mode.OldNCP));
-    public final BooleanSetting onlyGround = this.add(new BooleanSetting("OnlyGround", true, () -> !this.mode.is(Mode.Ground)));
-    private final BooleanSetting setOnGround = this.add(new BooleanSetting("SetNoGround", false, () -> this.mode.is(Mode.Ground)));
-    private final BooleanSetting blockCheck = this.add(new BooleanSetting("BlockCheck", true, () -> this.mode.is(Mode.Ground)));
-    private final BooleanSetting autoJump = this.add(new BooleanSetting("AutoJump", true, () -> this.mode.is(Mode.Ground)).setParent());
-    private final BooleanSetting mini = this.add(new BooleanSetting("Mini", true, () -> this.mode.is(Mode.Ground) && this.autoJump.isOpen()));
-    private final SliderSetting y = this.add(new SliderSetting("MotionY", 0.05, 0.0, 1.0, 1.0E-10, () -> this.mode.is(Mode.Ground) && this.autoJump.isOpen()));
-    private final BooleanSetting autoDisable = this.add(new BooleanSetting("AutoDisable", true, () -> this.mode.is(Mode.Ground)));
-    private final BooleanSetting crawlingDisable = this.add(new BooleanSetting("CrawlingDisable", true, () -> this.mode.is(Mode.Ground)));
-    private final BooleanSetting flight = this.add(new BooleanSetting("Flight", false, () -> this.mode.is(Mode.Ground)));
-    boolean requireJump = false;
+public class Criticals extends Module {
+   public static Criticals INSTANCE;
+   public final EnumSetting<Mode> mode;
+   public final BooleanSetting onlyGround;
+   private final BooleanSetting setOnGround;
+   private final BooleanSetting blockCheck;
+   private final BooleanSetting autoJump;
+   private final BooleanSetting mini;
+   private final SliderSetting y;
+   private final BooleanSetting autoDisable;
+   private final BooleanSetting crawlingDisable;
+   private final BooleanSetting flight;
+   boolean requireJump;
 
-    public Criticals() {
-        super("Criticals", Module.Category.Combat);
-        this.setChinese("\u5200\u5200\u66b4\u51fb");
-        INSTANCE = this;
-    }
+   public Criticals() {
+      super("Criticals", Module.Category.Combat);
+      this.mode = this.add(new EnumSetting("Mode", Criticals.Mode.OldNCP));
+      this.onlyGround = this.add(new BooleanSetting("OnlyGround", true, () -> !this.mode.is(Criticals.Mode.Ground)));
+      this.setOnGround = this.add(new BooleanSetting("SetNoGround", false, () -> this.mode.is(Criticals.Mode.Ground)));
+      this.blockCheck = this.add(new BooleanSetting("BlockCheck", true, () -> this.mode.is(Criticals.Mode.Ground)));
+      this.autoJump = this.add((new BooleanSetting("AutoJump", true, () -> this.mode.is(Criticals.Mode.Ground))).setParent());
+      this.mini = this.add(new BooleanSetting("Mini", true, () -> this.mode.is(Criticals.Mode.Ground) && this.autoJump.isOpen()));
+      this.y = this.add(new SliderSetting("MotionY", 0.05, (double)0.0F, (double)1.0F, 1.0E-10, () -> this.mode.is(Criticals.Mode.Ground) && this.autoJump.isOpen()));
+      this.autoDisable = this.add(new BooleanSetting("AutoDisable", true, () -> this.mode.is(Criticals.Mode.Ground)));
+      this.crawlingDisable = this.add(new BooleanSetting("CrawlingDisable", true, () -> this.mode.is(Criticals.Mode.Ground)));
+      this.flight = this.add(new BooleanSetting("Flight", false, () -> this.mode.is(Criticals.Mode.Ground)));
+      this.requireJump = false;
+      this.setChinese("刀刀暴击");
+      INSTANCE = this;
+   }
 
-    @Override
-    public String getInfo() {
-        return this.mode.getValue().name();
-    }
+   public String getInfo() {
+      return ((Mode)this.mode.getValue()).name();
+   }
 
-    @EventListener
-    public void onPacketSend(PacketEvent.Send event) {
-        Entity entity;
-        PlayerInteractEntityC2SPacket packet;
-        if (event.isCancelled()) {
-            return;
-        }
-        if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
-            return;
-        }
-        if (this.mode.is(Mode.Ground)) {
-            if (BowBomb.send) {
-                return;
+   @EventListener
+   public void onPacketSend(PacketEvent.Send event) {
+      if (!event.isCancelled()) {
+         if (!Blink.INSTANCE.isOn() || !Blink.INSTANCE.pauseModule.getValue()) {
+            if (this.mode.is(Criticals.Mode.Ground)) {
+               if (!AutoPearl.throwing && !Phase.INSTANCE.isOn()) {
+                  if (this.setOnGround.getValue()) {
+                     if (event.getPacket() instanceof PlayerMoveC2SPacket) {
+                        ((IPlayerMoveC2SPacket)event.getPacket()).setOnGround(false);
+                     }
+
+                  }
+               }
+            } else {
+               Packet<?> packet2 = event.getPacket();
+               Entity entity;
+               PlayerInteractEntityC2SPacket packet;
+               if (packet2 instanceof PlayerInteractEntityC2SPacket && getInteractType(packet = (PlayerInteractEntityC2SPacket)packet2) == InteractType.ATTACK && !((entity = getEntity(packet)) instanceof EndCrystalEntity) && (!this.onlyGround.getValue() || mc.player.isOnGround() || mc.player.getAbilities().flying) && !mc.player.isInLava() && !mc.player.isTouchingWater() && entity != null) {
+                  this.doCrit(entity);
+               }
+
             }
-            if (AutoPearl.throwing || Phase.INSTANCE.isOn()) {
-                return;
-            }
-            if (!this.setOnGround.getValue()) {
-                return;
-            }
-            if (event.getPacket() instanceof PlayerMoveC2SPacket) {
-                ((IPlayerMoveC2SPacket)event.getPacket()).setOnGround(false);
-            }
-            return;
-        }
-        Packet<?> packet2 = event.getPacket();
-        if (!(!(packet2 instanceof PlayerInteractEntityC2SPacket) || Criticals.getInteractType(packet = (PlayerInteractEntityC2SPacket)packet2) != PlayerInteractEntityC2SPacket.InteractType.ATTACK || (entity = Criticals.getEntity(packet)) instanceof EndCrystalEntity || this.onlyGround.getValue() && !Criticals.mc.player.isOnGround() && !Criticals.mc.player.getAbilities().flying || Criticals.mc.player.isInLava() || Criticals.mc.player.isTouchingWater() || entity == null)) {
-            this.doCrit(entity);
-        }
-    }
+         }
+      }
+   }
 
-    @Override
-    public void onLogout() {
-        if (this.mode.is(Mode.Ground) && this.autoDisable.getValue()) {
-            this.disable();
-        }
-    }
+   public void onLogout() {
+      if (this.mode.is(Criticals.Mode.Ground) && this.autoDisable.getValue()) {
+         this.disable();
+      }
 
-    @Override
-    public void onEnable() {
-        if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
-            return;
-        }
-        this.requireJump = true;
-        if (this.mode.is(Mode.Ground)) {
-            if (Criticals.nullCheck()) {
-                if (this.autoDisable.getValue()) {
-                    this.disable();
-                }
+   }
+
+   public void onEnable() {
+      if (!Blink.INSTANCE.isOn() || !Blink.INSTANCE.pauseModule.getValue()) {
+         this.requireJump = true;
+         if (this.mode.is(Criticals.Mode.Ground)) {
+            if (nullCheck()) {
+               if (this.autoDisable.getValue()) {
+                  this.disable();
+               }
             } else if (MovementUtil.isMoving() && this.autoDisable.getValue()) {
-                this.disable();
-            } else if (this.crawlingDisable.getValue() && Criticals.mc.player.isCrawling()) {
-                this.disable();
-            } else if (Criticals.mc.player.isOnGround() && this.autoJump.getValue() && (!this.blockCheck.getValue() || BlockUtil.canCollide((Entity)Criticals.mc.player, new Box(EntityUtil.getPlayerPos(true).up(2))))) {
-                this.jump();
+               this.disable();
+            } else if (this.crawlingDisable.getValue() && mc.player.isCrawling()) {
+               this.disable();
+            } else if (mc.player.isOnGround() && this.autoJump.getValue() && (!this.blockCheck.getValue() || BlockUtil.canCollide(mc.player, new Box(EntityUtil.getPlayerPos(true).up(2))))) {
+               this.jump();
             }
-        }
-    }
+         }
 
-    public void jump() {
-        if (this.mini.getValue()) {
-            MovementUtil.setMotionY(this.y.getValue());
-        } else {
-            Criticals.mc.player.jump();
-        }
-    }
+      }
+   }
 
-    @EventListener
-    public void onUpdate(UpdateEvent event) {
-        if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
-            return;
-        }
-        if (this.mode.is(Mode.Ground)) {
-            if (this.crawlingDisable.getValue() && Criticals.mc.player.isCrawling()) {
-                this.disable();
+   public void jump() {
+      if (this.mini.getValue()) {
+         MovementUtil.setMotionY(this.y.getValue());
+      } else {
+         mc.player.jump();
+      }
+
+   }
+
+   @EventListener
+   public void onUpdate(UpdateEvent event) {
+      if (!Blink.INSTANCE.isOn() || !Blink.INSTANCE.pauseModule.getValue()) {
+         if (this.mode.is(Criticals.Mode.Ground)) {
+            if (this.crawlingDisable.getValue() && mc.player.isCrawling()) {
+               this.disable();
             } else if (MovementUtil.isMoving() && this.autoDisable.getValue()) {
-                this.disable();
-            } else if (this.flight.getValue() && Criticals.mc.player.fallDistance > 0.0f) {
-                MovementUtil.setMotionY(0.0);
-                MovementUtil.setMotionX(0.0);
-                MovementUtil.setMotionZ(0.0);
-                this.requireJump = false;
-            } else if (this.blockCheck.getValue() && !BlockUtil.canCollide((Entity)Criticals.mc.player, new Box(EntityUtil.getPlayerPos(true).up(2)))) {
-                this.requireJump = true;
-            } else if (Criticals.mc.player.isOnGround() && this.autoJump.getValue() && (this.flight.getValue() || this.requireJump)) {
-                this.jump();
-                this.requireJump = false;
+               this.disable();
+            } else if (this.flight.getValue() && mc.player.fallDistance > 0.0F) {
+               MovementUtil.setMotionY((double)0.0F);
+               MovementUtil.setMotionX((double)0.0F);
+               MovementUtil.setMotionZ((double)0.0F);
+               this.requireJump = false;
+            } else if (this.blockCheck.getValue() && !BlockUtil.canCollide(mc.player, new Box(EntityUtil.getPlayerPos(true).up(2)))) {
+               this.requireJump = true;
+            } else if (mc.player.isOnGround() && this.autoJump.getValue() && (this.flight.getValue() || this.requireJump)) {
+               this.jump();
+               this.requireJump = false;
             }
-        }
-    }
+         }
 
-    public void doCrit(Entity entity) {
-        switch (this.mode.getValue().ordinal()) {
-            case 7: {
-                if (MovementUtil.isMoving() || !MovementUtil.isStatic()) {
-                    return;
-                }
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY(), Criticals.mc.player.getZ(), true));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.0625, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.045, Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 1: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.062600301692775, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.07260029960661, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY(), Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY(), Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 2: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.0625, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY(), Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 3: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 1.058293536E-5, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 9.16580235E-6, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 1.0371854E-7, Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 0: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 2.71875E-7, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY(), Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 4: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.0045, Criticals.mc.player.getZ(), true));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 1.52121E-4, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.3, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 0.025, Criticals.mc.player.getZ(), false));
-                break;
-            }
-            case 5: {
-                Criticals.mc.player.addCritParticles(entity);
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 5.0E-4, Criticals.mc.player.getZ(), false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Criticals.mc.player.getX(), Criticals.mc.player.getY() + 1.0E-4, Criticals.mc.player.getZ(), false));
-            }
-        }
-    }
+      }
+   }
 
-    public static Entity getEntity(PlayerInteractEntityC2SPacket packet) {
-        return Criticals.mc.world == null ? null : Criticals.mc.world.getEntityById(((dev.g255.arc.asm.accessors.IPlayerInteractEntityC2SPacket)packet).getEntityId());
-    }
-
-    public static PlayerInteractEntityC2SPacket.InteractType getInteractType(PlayerInteractEntityC2SPacket packet) {
-        final PlayerInteractEntityC2SPacket.InteractType[] result = new PlayerInteractEntityC2SPacket.InteractType[1];
-        packet.handle(new PlayerInteractEntityC2SPacket.Handler() {
-            @Override
-            public void interact(net.minecraft.util.Hand hand) {
-                result[0] = PlayerInteractEntityC2SPacket.InteractType.INTERACT;
+   public void doCrit(Entity entity) {
+      switch (((Mode)this.mode.getValue()).ordinal()) {
+         case 0:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 2.71875E-7, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY(), mc.player.getZ(), false));
+            break;
+         case 1:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.062600301692775, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.07260029960661, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY(), mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY(), mc.player.getZ(), false));
+            break;
+         case 2:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + (double)0.0625F, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY(), mc.player.getZ(), false));
+            break;
+         case 3:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 1.058293536E-5, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 9.16580235E-6, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 1.0371854E-7, mc.player.getZ(), false));
+            break;
+         case 4:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.0045, mc.player.getZ(), true));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 1.52121E-4, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.3, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.025, mc.player.getZ(), false));
+            break;
+         case 5:
+            mc.player.addCritParticles(entity);
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 5.0E-4, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 1.0E-4, mc.player.getZ(), false));
+         case 6:
+         default:
+            break;
+         case 7:
+            if (MovementUtil.isMoving() || !MovementUtil.isStatic()) {
+               return;
             }
 
-            @Override
-            public void interactAt(net.minecraft.util.Hand hand, net.minecraft.util.math.Vec3d pos) {
-                result[0] = PlayerInteractEntityC2SPacket.InteractType.INTERACT_AT;
-            }
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY(), mc.player.getZ(), true));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + (double)0.0625F, mc.player.getZ(), false));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + 0.045, mc.player.getZ(), false));
+      }
 
-            @Override
-            public void attack() {
-                result[0] = PlayerInteractEntityC2SPacket.InteractType.ATTACK;
-            }
-        });
-        return result[0];
-    }
+   }
 
-    public static enum Mode {
-        UpdatedNCP,
-        Strict,
-        NCP,
-        OldNCP,
-        Hypixel2K22,
-        Packet,
-        Ground,
-        BBTT;
+   public static Entity getEntity(PlayerInteractEntityC2SPacket packet) {
+      return mc.world == null ? null : mc.world.getEntityById(((IPlayerInteractEntityC2SPacket)packet).getEntityId());
+   }
 
-    }
+   public static PlayerInteractEntityC2SPacket.InteractType getInteractType(PlayerInteractEntityC2SPacket packet) {
+      final PlayerInteractEntityC2SPacket.InteractType[] result = new PlayerInteractEntityC2SPacket.InteractType[1];
+      packet.handle(new PlayerInteractEntityC2SPacket.Handler() {
+         public void interact(Hand hand) {
+            result[0] = InteractType.INTERACT;
+         }
+
+         public void interactAt(Hand hand, Vec3d pos) {
+            result[0] = InteractType.INTERACT_AT;
+         }
+
+         public void attack() {
+            result[0] = InteractType.ATTACK;
+         }
+      });
+      return result[0];
+   }
+
+   public static enum Mode {
+      UpdatedNCP,
+      Strict,
+      NCP,
+      OldNCP,
+      Hypixel2K22,
+      Packet,
+      Ground,
+      BBTT;
+
+      // $FF: synthetic method
+      private static Mode[] $values() {
+         return new Mode[]{UpdatedNCP, Strict, NCP, OldNCP, Hypixel2K22, Packet, Ground, BBTT};
+      }
+   }
 }
-

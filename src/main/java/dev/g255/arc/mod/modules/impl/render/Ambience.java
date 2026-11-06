@@ -1,9 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
- */
 package dev.g255.arc.mod.modules.impl.render;
 
 import dev.g255.arc.api.events.eventbus.EventListener;
@@ -15,81 +9,102 @@ import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.ColorSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import java.awt.Color;
+import java.util.Objects;
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 
-public class Ambience
-extends Module {
-    public static Ambience INSTANCE;
-    public final ColorSetting filter = this.add(new ColorSetting("Filter", new Color(255, 255, 255, 20)).injectBoolean(false));
-    public final ColorSetting worldColor = this.add(new ColorSetting("WorldColor", new Color(-1, true)).injectBoolean(true));
-    public final BooleanSetting customTime = this.add(new BooleanSetting("CustomTime", false).setParent());
-    public final SliderSetting time = this.add(new SliderSetting("Time", 0, 0, 24000, this.customTime::isOpen));
-    public final ColorSetting fog = this.add(new ColorSetting("FogColor", new Color(13401557)).injectBoolean(false));
-    public final ColorSetting sky = this.add(new ColorSetting("SkyColor", new Color(0)).injectBoolean(false));
-    public final ColorSetting cloud = this.add(new ColorSetting("CloudColor", new Color(0)).injectBoolean(false));
-    public final ColorSetting dimensionColor = this.add(new ColorSetting("DimensionColor", new Color(0)).injectBoolean(false));
-    public final BooleanSetting fogDistance = this.add(new BooleanSetting("FogDistance", false).setParent());
-    public final SliderSetting fogStart = this.add(new SliderSetting("FogStart", 50, 0, 1000, this.fogDistance::isOpen));
-    public final SliderSetting fogEnd = this.add(new SliderSetting("FogEnd", 100, 0, 1000, this.fogDistance::isOpen));
-    public final BooleanSetting fullBright = this.add(new BooleanSetting("FullBright", false));
-    public final BooleanSetting forceOverworld = this.add(new BooleanSetting("ForceOverworld", false));
-    public final BooleanSetting customLuminance = this.add(new BooleanSetting("CustomLuminance", false).setParent().injectTask(() -> {
-        if (!Ambience.nullCheck()) {
-            Ambience.mc.worldRenderer.reload();
-        }
-    }));
-    public final SliderSetting luminance = this.add(new SliderSetting("Luminance", 15, 0, 15, this.customLuminance::isOpen).injectTask(() -> {
-        if (!Ambience.nullCheck() && this.customLuminance.getValue()) {
-            Ambience.mc.worldRenderer.reload();
-        }
-    }));
-    long oldTime;
+public class Ambience extends Module {
+   public static Ambience INSTANCE;
+   public final ColorSetting filter = this.add((new ColorSetting("Filter", new Color(255, 255, 255, 20))).injectBoolean(false));
+   public final ColorSetting worldColor = this.add((new ColorSetting("WorldColor", new Color(-1, true))).injectBoolean(true));
+   public final BooleanSetting customTime = this.add((new BooleanSetting("CustomTime", false)).setParent());
+   public final SliderSetting time;
+   public final ColorSetting fog;
+   public final ColorSetting sky;
+   public final ColorSetting cloud;
+   public final ColorSetting dimensionColor;
+   public final BooleanSetting fogDistance;
+   public final SliderSetting fogStart;
+   public final SliderSetting fogEnd;
+   public final BooleanSetting fullBright;
+   public final BooleanSetting forceOverworld;
+   public final BooleanSetting customLuminance;
+   public final SliderSetting luminance;
+   long oldTime;
 
-    public Ambience() {
-        super("Ambience", "Custom ambience", Module.Category.Render);
-        this.setChinese("\u81ea\u5b9a\u4e49\u73af\u5883");
-        INSTANCE = this;
-    }
+   public Ambience() {
+      super("Ambience", "Custom ambience", Module.Category.Render);
+      BooleanSetting var10008 = this.customTime;
+      Objects.requireNonNull(var10008);
+      this.time = this.add(new SliderSetting("Time", 0, 0, 24000, var10008::isOpen));
+      this.fog = this.add((new ColorSetting("FogColor", new Color(13401557))).injectBoolean(false));
+      this.sky = this.add((new ColorSetting("SkyColor", new Color(0))).injectBoolean(false));
+      this.cloud = this.add((new ColorSetting("CloudColor", new Color(0))).injectBoolean(false));
+      this.dimensionColor = this.add((new ColorSetting("DimensionColor", new Color(0))).injectBoolean(false));
+      this.fogDistance = this.add((new BooleanSetting("FogDistance", false)).setParent());
+      var10008 = this.fogDistance;
+      Objects.requireNonNull(var10008);
+      this.fogStart = this.add(new SliderSetting("FogStart", 50, 0, 1000, var10008::isOpen));
+      var10008 = this.fogDistance;
+      Objects.requireNonNull(var10008);
+      this.fogEnd = this.add(new SliderSetting("FogEnd", 100, 0, 1000, var10008::isOpen));
+      this.fullBright = this.add(new BooleanSetting("FullBright", false));
+      this.forceOverworld = this.add(new BooleanSetting("ForceOverworld", false));
+      this.customLuminance = this.add((new BooleanSetting("CustomLuminance", false)).setParent().injectTask(() -> {
+         if (!nullCheck()) {
+            mc.worldRenderer.reload();
+         }
 
-    @EventListener
-    public void onRender2D(PreRender2DEvent event) {
-        if (this.filter.booleanValue) {
-            event.drawContext.fill(0, 0, mc.getWindow().getScaledWidth(), mc.getWindow().getScaledHeight(), this.filter.getValue().getRGB());
-        }
-    }
+      }));
+      var10008 = this.customLuminance;
+      Objects.requireNonNull(var10008);
+      this.luminance = this.add((new SliderSetting("Luminance", 15, 0, 15, var10008::isOpen)).injectTask(() -> {
+         if (!nullCheck() && this.customLuminance.getValue()) {
+            mc.worldRenderer.reload();
+         }
 
-    @EventListener
-    public void onUpdate(UpdateEvent event) {
-        if (this.customTime.getValue()) {
-            Ambience.mc.world.setTimeOfDay((long)this.time.getValue());
-        }
-    }
+      }));
+      this.setChinese("自定义环境");
+      INSTANCE = this;
+   }
 
-    @Override
-    public void onEnable() {
-        if (Ambience.nullCheck()) {
-            return;
-        }
-        this.oldTime = Ambience.mc.world.getTimeOfDay();
-        if (this.customTime.getValue()) {
-            Ambience.mc.world.setTimeOfDay((long)this.time.getValue());
-        }
-    }
+   @EventListener
+   public void onRender2D(PreRender2DEvent event) {
+      if (this.filter.booleanValue) {
+         event.drawContext.fill(0, 0, mc.getWindow().getScaledWidth(), mc.getWindow().getScaledHeight(), this.filter.getValue().getRGB());
+      }
 
-    @Override
-    public void onDisable() {
-        if (Ambience.nullCheck()) {
-            return;
-        }
-        Ambience.mc.world.setTimeOfDay(this.oldTime);
-    }
+   }
 
-    @EventListener
-    public void onReceivePacket(PacketEvent.Receive event) {
-        if (event.getPacket() instanceof WorldTimeUpdateS2CPacket && this.customTime.getValue()) {
-            this.oldTime = ((WorldTimeUpdateS2CPacket)event.getPacket()).getTime();
-            event.cancel();
-        }
-    }
+   @EventListener
+   public void onUpdate(UpdateEvent event) {
+      if (this.customTime.getValue()) {
+         mc.world.setTimeOfDay((long)this.time.getValue());
+      }
+
+   }
+
+   public void onEnable() {
+      if (!nullCheck()) {
+         this.oldTime = mc.world.getTimeOfDay();
+         if (this.customTime.getValue()) {
+            mc.world.setTimeOfDay((long)this.time.getValue());
+         }
+
+      }
+   }
+
+   public void onDisable() {
+      if (!nullCheck()) {
+         mc.world.setTimeOfDay(this.oldTime);
+      }
+   }
+
+   @EventListener
+   public void onReceivePacket(PacketEvent.Receive event) {
+      if (event.getPacket() instanceof WorldTimeUpdateS2CPacket && this.customTime.getValue()) {
+         this.oldTime = ((WorldTimeUpdateS2CPacket)event.getPacket()).getTime();
+         event.cancel();
+      }
+
+   }
 }
-

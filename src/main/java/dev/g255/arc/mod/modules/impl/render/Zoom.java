@@ -1,6 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.mod.modules.impl.render;
 
 import dev.g255.arc.Arc;
@@ -12,46 +9,46 @@ import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 
-public class Zoom
-extends Module {
-    public static Zoom INSTANCE;
-    public static boolean on;
-    public final EnumSetting<Easing> ease = this.add(new EnumSetting<Easing>("Ease", Easing.CubicInOut));
-    final SliderSetting fov = this.add(new SliderSetting("ZoomFov", 60.0, 0.0, 130.0, 1.0));
-    final Animation animation = new Animation();
-    private final SliderSetting animTime = this.add(new SliderSetting("AnimTime", 300, 0, 1000));
-    public double currentFov;
+public class Zoom extends Module {
+   public static Zoom INSTANCE;
+   public static boolean on = false;
+   public final EnumSetting<Easing> ease;
+   final SliderSetting fov;
+   final Animation animation;
+   private final SliderSetting animTime;
+   public double currentFov;
 
-    public Zoom() {
-        super("Zoom", Module.Category.Render);
-        this.setChinese("\u653e\u5927");
-        INSTANCE = this;
-        Arc.EVENT_BUS.subscribe(new ZoomAnim());
-    }
+   public Zoom() {
+      super("Zoom", Module.Category.Render);
+      this.ease = this.add(new EnumSetting("Ease", Easing.CubicInOut));
+      this.fov = this.add(new SliderSetting("ZoomFov", (double)60.0F, (double)0.0F, (double)130.0F, (double)1.0F));
+      this.animation = new Animation();
+      this.animTime = this.add(new SliderSetting("AnimTime", 300, 0, 1000));
+      this.setChinese("放大");
+      INSTANCE = this;
+      Arc.EVENT_BUS.subscribe(new ZoomAnim());
+   }
 
-    @Override
-    public void onEnable() {
-        if (Zoom.nullCheck()) {
-            this.disable();
-        }
-    }
+   public void onEnable() {
+      if (nullCheck()) {
+         this.disable();
+      }
 
-    static {
-        on = false;
-    }
+   }
 
-    public class ZoomAnim {
-        @EventListener
-        public void onRender3D(Render3DEvent event) {
-            if (Zoom.this.isOn()) {
-                Zoom.this.currentFov = Zoom.this.animation.get(Zoom.this.fov.getValue(), Zoom.this.animTime.getValueInt(), Zoom.this.ease.getValue());
-                on = true;
-            } else if (on) {
-                Zoom.this.currentFov = Zoom.this.animation.get(0.0, Zoom.this.animTime.getValueInt(), Zoom.this.ease.getValue());
-                if ((int)Zoom.this.currentFov == 0) {
-                    on = false;
-                }
+   public class ZoomAnim {
+      @EventListener
+      public void onRender3D(Render3DEvent event) {
+         if (Zoom.this.isOn()) {
+            Zoom.this.currentFov = Zoom.this.animation.get(Zoom.this.fov.getValue(), (long)Zoom.this.animTime.getValueInt(), Zoom.this.ease.getValue());
+            Zoom.on = true;
+         } else if (Zoom.on) {
+            Zoom.this.currentFov = Zoom.this.animation.get((double)0.0F, (long)Zoom.this.animTime.getValueInt(), Zoom.this.ease.getValue());
+            if ((int)Zoom.this.currentFov == 0) {
+               Zoom.on = false;
             }
-        }
-    }
+         }
+
+      }
+   }
 }

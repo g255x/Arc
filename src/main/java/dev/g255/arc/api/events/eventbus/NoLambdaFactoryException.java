@@ -1,12 +1,7 @@
-/*
- * Decompiled with CFR 0.152.
- */
 package dev.g255.arc.api.events.eventbus;
 
-public class NoLambdaFactoryException
-extends RuntimeException {
-    public NoLambdaFactoryException(Class<?> klass) {
-        super("No registered lambda listener for '" + klass.getName() + "'.");
-    }
+public class NoLambdaFactoryException extends RuntimeException {
+   public NoLambdaFactoryException(Class<?> klass) {
+      super("No registered lambda listener for '" + klass.getName() + "'.");
+   }
 }
-
