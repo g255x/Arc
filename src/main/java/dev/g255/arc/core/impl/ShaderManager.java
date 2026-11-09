@@ -140,81 +140,86 @@ public class ShaderManager implements Wrapper {
       Color color = module.fill.getValue();
       this.time = (float)timer.getMs() / 5.0F * module.speed.getValueFloat() * 0.004F;
       if (shader == ShaderManager.Shader.Rainbow) {
-         effect.setUniformValue("alpha2", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.setUniformValue("time", this.time);
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "alpha2", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         safeSetUniformValue(effect, "time", this.time);
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Gradient) {
          // gradient.fsh 只声明了 alpha2/factor/moreGradient/oct 等 uniform，没有 rgb/rgb1..3/step。
          // 原来这里照抄了主菜单渐变着色器的 uniform，Satin 找不到 uniform 会直接抛异常
          // （世界加载时崩在 GlUniform.set），所以只设置 gradient.fsh 真实存在的项。
-         effect.setUniformValue("alpha2", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.setUniformValue("time", this.time * 300.0F);
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "alpha2", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         safeSetUniformValue(effect, "time", this.time * 300.0F);
+         // gradient.fsh 的 fbm 要靠 oct 才会真正采样，p 的缩放靠 moreGradient，warp 强度靠 factor。
+         // 这三项不传就是 0：循环次数为 0、坐标恒为 0，整块区域会退化成一片死色。
+         safeSetUniformValue(effect, "oct", module.octaves.getValueFloat());
+         safeSetUniformValue(effect, "factor", 1.0F);
+         safeSetUniformValue(effect, "moreGradient", 1.0F);
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Smoke) {
-         effect.setUniformValue("alpha1", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("first", (float)module.smoke1.getValue().getRed() / 255.0F, (float)module.smoke1.getValue().getGreen() / 255.0F, (float)module.smoke1.getValue().getBlue() / 255.0F, (float)module.smoke1.getValue().getAlpha() / 255.0F);
-         effect.setUniformValue("second", (float)module.smoke2.getValue().getRed() / 255.0F, (float)module.smoke2.getValue().getGreen() / 255.0F, (float)module.smoke2.getValue().getBlue() / 255.0F);
-         effect.setUniformValue("third", (float)module.smoke3.getValue().getRed() / 255.0F, (float)module.smoke3.getValue().getGreen() / 255.0F, (float)module.smoke3.getValue().getBlue() / 255.0F);
-         effect.setUniformValue("oct", module.octaves.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.setUniformValue("time", this.time);
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "alpha1", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "first", (float)module.smoke1.getValue().getRed() / 255.0F, (float)module.smoke1.getValue().getGreen() / 255.0F, (float)module.smoke1.getValue().getBlue() / 255.0F, (float)module.smoke1.getValue().getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "second", (float)module.smoke2.getValue().getRed() / 255.0F, (float)module.smoke2.getValue().getGreen() / 255.0F, (float)module.smoke2.getValue().getBlue() / 255.0F);
+         safeSetUniformValue(effect, "third", (float)module.smoke3.getValue().getRed() / 255.0F, (float)module.smoke3.getValue().getGreen() / 255.0F, (float)module.smoke3.getValue().getBlue() / 255.0F);
+         safeSetUniformValue(effect, "oct", module.octaves.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         safeSetUniformValue(effect, "time", this.time);
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Solid) {
-         effect.setUniformValue("mixFactor", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("minAlpha", module.alpha.getValueFloat() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F);
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "mixFactor", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "minAlpha", module.alpha.getValueFloat() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F);
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Pulse) {
-         effect.setUniformValue("mixFactor", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("minAlpha", module.alpha.getValueFloat() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F);
+         safeSetUniformValue(effect, "mixFactor", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "minAlpha", module.alpha.getValueFloat() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F);
          Color color2 = module.pulse.getValue();
-         effect.setUniformValue("color2", (float)color2.getRed() / 255.0F, (float)color2.getGreen() / 255.0F, (float)color2.getBlue() / 255.0F);
-         effect.setUniformValue("time", this.time);
-         effect.setUniformValue("size", module.pulseSpeed.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "color2", (float)color2.getRed() / 255.0F, (float)color2.getGreen() / 255.0F, (float)color2.getBlue() / 255.0F);
+         safeSetUniformValue(effect, "time", this.time);
+         safeSetUniformValue(effect, "size", module.pulseSpeed.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Snow) {
-         effect.setUniformValue("color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F, (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.setUniformValue("time", this.time);
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "color", (float)color.getRed() / 255.0F, (float)color.getGreen() / 255.0F, (float)color.getBlue() / 255.0F, (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         safeSetUniformValue(effect, "time", this.time);
+         renderEffect(effect);
       } else if (shader == ShaderManager.Shader.Flow) {
-         effect.setUniformValue("mixFactor", (float)color.getAlpha() / 255.0F);
-         effect.setUniformValue("radius", module.radius.getValueFloat());
-         effect.setUniformValue("quality", module.smoothness.getValueFloat());
-         effect.setUniformValue("divider", module.divider.getValueFloat());
-         effect.setUniformValue("maxSample", module.maxSample.getValueFloat());
-         effect.setUniformValue("resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
-         effect.setUniformValue("time", this.time);
-         effect.render(mc.getRenderTickCounter().getTickDelta(true));
+         safeSetUniformValue(effect, "mixFactor", (float)color.getAlpha() / 255.0F);
+         safeSetUniformValue(effect, "radius", module.radius.getValueFloat());
+         safeSetUniformValue(effect, "quality", module.smoothness.getValueFloat());
+         safeSetUniformValue(effect, "divider", module.divider.getValueFloat());
+         safeSetUniformValue(effect, "maxSample", module.maxSample.getValueFloat());
+         safeSetUniformValue(effect, "resolution", (float)mc.getWindow().getScaledWidth(), (float)mc.getWindow().getScaledHeight());
+         safeSetUniformValue(effect, "time", this.time);
+         renderEffect(effect);
       }
 
    }
@@ -279,10 +284,20 @@ public class ShaderManager implements Wrapper {
       });
    }
 
+   /**
+    * 所有 uniform 都必须走这里。
+    *
+    * Satin 的 setUniformValue 最终落到 GlUniform.set，而 GlUniform 按 GLSL 里声明的真实类型持有
+    * floatData / intData：参数类型对不上（例如 oct 在 fsh 里是 float，却传了 int）或者名字在 fsh
+    * 里根本不存在时，Satin 会抛异常。这条调用链挂在 WorldRenderer 的 redirect 上，异常没人接手就
+    * 直接把渲染线程打死（历史崩溃：NullPointerException: this.intData is null at GlUniform.set）。
+    * 所以这里兜住所有 Throwable：最多丢一个 uniform，绝不让游戏崩。
+    */
    private void safeSetUniformValue(ManagedShaderEffect shader, String name, float v1) {
       try {
          shader.setUniformValue(name, v1);
-      } catch (Exception var5) {
+      } catch (Throwable t) {
+         this.reportUniformFailure(name, t);
       }
 
    }
@@ -290,7 +305,17 @@ public class ShaderManager implements Wrapper {
    private void safeSetUniformValue(ManagedShaderEffect shader, String name, float v1, float v2) {
       try {
          shader.setUniformValue(name, v1, v2);
-      } catch (Exception var6) {
+      } catch (Throwable t) {
+         this.reportUniformFailure(name, t);
+      }
+
+   }
+
+   private void safeSetUniformValue(ManagedShaderEffect shader, String name, float v1, float v2, float v3) {
+      try {
+         shader.setUniformValue(name, v1, v2, v3);
+      } catch (Throwable t) {
+         this.reportUniformFailure(name, t);
       }
 
    }
@@ -298,7 +323,26 @@ public class ShaderManager implements Wrapper {
    private void safeSetUniformValue(ManagedShaderEffect shader, String name, float v1, float v2, float v3, float v4) {
       try {
          shader.setUniformValue(name, v1, v2, v3, v4);
-      } catch (Exception var8) {
+      } catch (Throwable t) {
+         this.reportUniformFailure(name, t);
+      }
+
+   }
+
+   private void renderEffect(ManagedShaderEffect shader) {
+      try {
+         shader.render(mc.getRenderTickCounter().getTickDelta(true));
+      } catch (Throwable t) {
+         this.reportUniformFailure("render", t);
+      }
+
+   }
+
+   private static final java.util.Set<String> WARNED_UNIFORMS = new java.util.HashSet<>();
+
+   private void reportUniformFailure(String name, Throwable t) {
+      if (WARNED_UNIFORMS.add(name)) {
+         System.out.println("[Arc] skipped bad shader uniform '" + name + "' -> " + t);
       }
 
    }

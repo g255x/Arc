@@ -32,7 +32,7 @@ public class Arc implements ModInitializer {
    }
 
    public static final String NAME = "Arc";
-   public static final String VERSION = "1.5";
+   public static final String VERSION = "Development b1";
 
    public static String formatBrand(String text) {
       if (text == null) {
@@ -74,7 +74,7 @@ public class Arc implements ModInitializer {
       FRIEND.save();
       XRAY.save();
       TRADE.save();
-      System.out.println("[Arc] by G255 - Saved");
+      System.out.println("[Arc] - Saved");
    }
 
    private void register() {

@@ -15,6 +15,7 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
+import org.ladysnake.satin.api.managed.ManagedShaderEffect;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -78,11 +79,20 @@ public abstract class MixinWorldRenderer {
    void replaceShaderHook(PostEffectProcessor instance, float tickDelta) {
       ShaderManager.Shader shaders = ShaderModule.INSTANCE.mode.getValue();
       if (ShaderModule.INSTANCE.isOn() && Wrapper.mc.world != null) {
-         Arc.SHADER.setupShader(shaders, Arc.SHADER.getShaderOutline(shaders));
-      } else {
-         instance.render(tickDelta);
+         try {
+            ManagedShaderEffect effect = Arc.SHADER.getShaderOutline(shaders);
+            if (effect != null && effect.getShaderEffect() != null) {
+               Arc.SHADER.setupShader(shaders, effect);
+               return;
+            }
+         } catch (Throwable t) {
+            // 着色器出任何岔子都不能让异常冲出渲染线程（那会直接生成 crash report），
+            // 退回原版后处理，最差只是没有特效。
+            System.out.println("[Arc] outline shader unavailable, falling back to vanilla: " + t);
+         }
       }
 
+      instance.render(tickDelta);
    }
 
    @ModifyArg(

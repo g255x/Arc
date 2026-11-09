@@ -78,6 +78,16 @@ public class Item extends Mod {
       this.height = height;
    }
 
+   /** 该行对应的配置项；非配置项（类型栏、按钮）返回 null，用于悬停显示说明 */
+   public dev.g255.arc.mod.modules.settings.Setting getSetting() {
+      return null;
+   }
+
+   /** 悬停在枚举展开的某个选项上时返回该选项名，否则返回 null */
+   public String getHoveredOption(int mouseX, int mouseY) {
+      return null;
+   }
+
    public boolean isHidden() {
       return this.hidden;
    }

@@ -244,6 +244,7 @@ public abstract class Module extends Mod {
    }
 
    public void addSetting(Setting setting) {
+      setting.setOwner(this.getName());
       this.settings.add(setting);
    }
 

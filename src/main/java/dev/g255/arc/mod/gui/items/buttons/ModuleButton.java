@@ -75,6 +75,25 @@ public class ModuleButton extends Button {
       this.items = newItems;
    }
 
+   /**
+    * 画一行配置，并顺便登记悬停：点开模块后把鼠标停在任意配置项上，
+    * ClickGuiScreen 会在鼠标旁画一个「只有说明、没有标题」的信息框。
+    */
+   private void drawItem(Item item, DrawContext context, int mouseX, int mouseY, float partialTicks) {
+      item.drawScreen(context, mouseX, mouseY, partialTicks);
+      Setting setting = item.getSetting();
+      if (setting != null
+         && item instanceof Button button
+         && button.isHoveringArea(mouseX, mouseY)
+         && mc.currentScreen instanceof ClickGuiScreen screen) {
+         screen.hoveredSetting = setting;
+         screen.hoveredSettingOption = button.getHoveredOption(mouseX, mouseY);
+         screen.tooltipMouseX = mouseX;
+         screen.tooltipMouseY = mouseY;
+      }
+
+   }
+
    public void update() {
       for(Item item : this.items) {
          item.update();
@@ -227,7 +246,7 @@ public class ModuleButton extends Button {
                item.setLocation(this.x + 1.0F, this.y + height + slide);
                item.setWidth(this.width - 9);
                if (setting instanceof BooleanSetting && ((BooleanSetting)setting).hasParent()) {
-                  item.drawScreen(context, mouseX, mouseY, partialTicks);
+                  this.drawItem(item, context, mouseX, mouseY, partialTicks);
                   height += (float)(visibleH + (double)2.0F);
                   BooleanSetting parent = (BooleanSetting)setting;
                   double openProgress = this.getParentOpenProgress(parent);
@@ -281,11 +300,11 @@ public class ModuleButton extends Button {
                                  int iY2 = Math.min(scissorY2, cY2);
                                  if (iX2 > iX1 && iY2 > iY1) {
                                     context.enableScissor(iX1, iY1, iX2, iY2);
-                                    child.drawScreen(context, mouseX, mouseY, partialTicks);
+                                    this.drawItem(child, context, mouseX, mouseY, partialTicks);
                                     context.disableScissor();
                                  }
                               } else {
-                                 child.drawScreen(context, mouseX, mouseY, partialTicks);
+                                 this.drawItem(child, context, mouseX, mouseY, partialTicks);
                               }
 
                               yOff += (float)(childVisibleH + (double)2.0F);
@@ -305,10 +324,10 @@ public class ModuleButton extends Button {
                      int scissorX2 = (int)(item.getX() + (float)item.getWidth() + 7.0F) + 1;
                      int scissorY2 = (int)((double)item.getY() + visibleH) + 1;
                      context.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
-                     item.drawScreen(context, mouseX, mouseY, partialTicks);
+                     this.drawItem(item, context, mouseX, mouseY, partialTicks);
                      context.disableScissor();
                   } else {
-                     item.drawScreen(context, mouseX, mouseY, partialTicks);
+                     this.drawItem(item, context, mouseX, mouseY, partialTicks);
                   }
 
                   height += (float)(visibleH + (double)2.0F);

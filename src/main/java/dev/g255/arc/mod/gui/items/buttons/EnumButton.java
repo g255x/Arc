@@ -21,6 +21,52 @@ public class EnumButton extends Button {
    private final Animation textAnimation = new Animation();
    private String lastValue;
 
+   @Override
+   public dev.g255.arc.mod.modules.settings.Setting getSetting() {
+      return this.setting;
+   }
+
+   /** 显示名每帧从配置项取：切换语言后不必重建 GUI，配置名立刻跟着变 */
+   @Override
+   public String getName() {
+      return this.setting.getDisplayName();
+   }
+
+   @Override
+   public boolean isHoveringArea(int mouseX, int mouseY) {
+      return super.isHoveringArea(mouseX, mouseY) || this.open && this.findOptionRow(mouseX, mouseY) != null;
+   }
+
+   /**
+    * 未展开 / 停在标题行：解释当前选中的那个取值；
+    * 展开后停在某个选项行上：解释那一个选项。
+    */
+   @Override
+   public String getHoveredOption(int mouseX, int mouseY) {
+      if (this.open) {
+         String row = this.findOptionRow(mouseX, mouseY);
+         if (row != null) {
+            return row;
+         }
+      }
+
+      return this.setting.getValue().name();
+   }
+
+   private String findOptionRow(int mouseX, int mouseY) {
+      int y = (int)this.y;
+
+      for(Enum e : (Enum[])this.setting.getValue().getDeclaringClass().getEnumConstants()) {
+         if ((float)mouseX > this.x && (float)mouseX < this.x + (float)this.width && mouseY >= y + this.height + 1 && mouseY < y + this.height + 11 + 1) {
+            return e.name();
+         }
+
+         y += 11;
+      }
+
+      return null;
+   }
+
    public EnumButton(EnumSetting<?> setting) {
       super(setting.getDisplayName());
       this.setting = setting;

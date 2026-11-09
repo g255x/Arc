@@ -11,6 +11,7 @@ import dev.g255.arc.core.impl.TradeManager;
 import dev.g255.arc.core.impl.XrayManager;
 import dev.g255.arc.mod.gui.items.buttons.StringButton;
 import dev.g255.arc.mod.gui.windows.WindowBase;
+import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -37,12 +38,21 @@ public class ItemSelectWindow extends WindowBase {
    private boolean listening;
    private String search;
 
+   /** 跟随 ClickGUI 的中文开关；静态方法是为了能在 super(...) 的实参里用 */
+   private static boolean chineseMode() {
+      try {
+         return ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.chinese.getValue();
+      } catch (Throwable throwable) {
+         return false;
+      }
+   }
+
    public ItemSelectWindow(Manager manager) {
       this((float)Wrapper.mc.getWindow().getScaledWidth() / 2.0F - 100.0F, (float)Wrapper.mc.getWindow().getScaledHeight() / 2.0F - 150.0F, 200.0F, 300.0F, manager);
    }
 
    public ItemSelectWindow(float x, float y, float width, float height, Manager manager) {
-      super(x, y, width, height, "Items", (Identifier)null);
+      super(x, y, width, height, chineseMode() ? "物品" : "Items", (Identifier)null);
       this.itemPlates = new ArrayList();
       this.allItems = new ArrayList();
       this.allTab = true;
@@ -68,7 +78,7 @@ public class ItemSelectWindow extends WindowBase {
       super.render(context, mouseX, mouseY);
       boolean hover1 = Render2DUtil.isHovered((double)mouseX, (double)mouseY, (double)(this.getX() + this.getWidth() - 90.0F), (double)(this.getY() + 3.0F), (double)70.0F, (double)10.0F);
       Render2DUtil.drawRect(context.getMatrices(), this.getX() + this.getWidth() - 90.0F, this.getY() + 3.0F, 70.0F, 10.0F, hover1 ? new Color(-981236861, true) : new Color(-984131753, true));
-      FontManager.small.drawString(context.getMatrices(), this.search, (double)(this.getX() + this.getWidth() - 86.0F), (double)(this.getY() + 7.0F), (new Color(14013909)).getRGB());
+      FontManager.small.drawString(context.getMatrices(), this.search.equals("Search") ? (chineseMode() ? "搜索" : "Search") : this.search, (double)(this.getX() + this.getWidth() - 86.0F), (double)(this.getY() + 7.0F), (new Color(14013909)).getRGB());
       RenderSystem.setShader(GameRenderer::getPositionColorProgram);
       int tabColor1 = this.allTab ? (new Color(14013909)).getRGB() : Color.GRAY.getRGB();
       int tabColor2 = this.allTab ? Color.GRAY.getRGB() : (new Color(12434877)).getRGB();
@@ -84,10 +94,10 @@ public class ItemSelectWindow extends WindowBase {
       bufferBuilder.vertex(this.getX() + 100.0F, this.getY() + 29.0F, 0.0F).color(Color.GRAY.getRGB());
       bufferBuilder.vertex(this.getX() + this.getWidth() - 1.0F, this.getY() + 29.0F, 0.0F).color(Color.DARK_GRAY.getRGB());
       BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
-      FontManager.small.drawString(context.getMatrices(), "All", (double)(this.getX() + 25.0F), (double)(this.getY() + 25.0F), tabColor1);
-      FontManager.small.drawString(context.getMatrices(), "Selected", (double)(this.getX() + 60.0F), (double)(this.getY() + 25.0F), tabColor2);
+      FontManager.small.drawString(context.getMatrices(), chineseMode() ? "全部" : "All", (double)(this.getX() + 25.0F), (double)(this.getY() + 25.0F), tabColor1);
+      FontManager.small.drawString(context.getMatrices(), chineseMode() ? "已选" : "Selected", (double)(this.getX() + 60.0F), (double)(this.getY() + 25.0F), tabColor2);
       if (!this.allTab && this.itemPlates.isEmpty()) {
-         FontManager.ui.drawCenteredString(context.getMatrices(), "It's empty here yet", (double)(this.getX() + this.getWidth() / 2.0F), (double)(this.getY() + this.getHeight() / 2.0F), (new Color(12434877)).getRGB());
+         FontManager.ui.drawCenteredString(context.getMatrices(), chineseMode() ? "这里还空着" : "It's empty here yet", (double)(this.getX() + this.getWidth() / 2.0F), (double)(this.getY() + this.getHeight() / 2.0F), (new Color(12434877)).getRGB());
       }
 
       context.enableScissor((int)this.getX(), (int)(this.getY() + 30.0F), (int)(this.getX() + this.getWidth()), (int)(this.getY() + this.getHeight() - 1.0F));

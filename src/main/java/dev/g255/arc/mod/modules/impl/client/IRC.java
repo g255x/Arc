@@ -11,6 +11,7 @@ public class IRC extends Module {
 
    public IRC() {
       super("LowInputLatency", Module.Category.Client);
+      this.setChinese("低输入延迟");
    }
 
    public void onEnable() {

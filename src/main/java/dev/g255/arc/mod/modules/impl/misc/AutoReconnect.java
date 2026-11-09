@@ -72,12 +72,21 @@ public class AutoReconnect extends Module {
 
    @EventListener
    public void onUpdate(UpdateEvent event) {
+      // 单人/局域网存档没有 AuthMe 这类登录插件，也不是排队服：往里面发 /login 只会换来一句
+      // 「未知或不完整的命令」；自动排队更是会在有指南针时每 3 秒把手持物品切成指南针。
+      // 这些功能只在真正的多人服务器上才有意义。
+      boolean multiplayer = !mc.isInSingleplayer();
+
       if (this.login && this.timer.passedS(this.afterLoginTime.getValue())) {
-         mc.getNetworkHandler().sendChatCommand("login " + this.password.getValue());
          this.login = false;
+
+         String password = this.password.getValue();
+         if (multiplayer && mc.getNetworkHandler() != null && password != null && !password.isBlank()) {
+            mc.getNetworkHandler().sendChatCommand("login " + password);
+         }
       }
 
-      if (this.autoQueue.getValue() && !this.queueingByMessage && InventoryUtil.findItem(Items.COMPASS) != -1 && this.queueTimer.passedS(this.joinQueueDelay.getValue())) {
+      if (multiplayer && this.autoQueue.getValue() && !this.queueingByMessage && InventoryUtil.findItem(Items.COMPASS) != -1 && this.queueTimer.passedS(this.joinQueueDelay.getValue())) {
          InventoryUtil.switchToSlot(InventoryUtil.findItem(Items.COMPASS));
          sendSequencedPacket((id) -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Arc.ROTATION.getLastYaw(), Arc.ROTATION.getLastPitch()));
          this.queueTimer.reset();
@@ -87,7 +96,7 @@ public class AutoReconnect extends Module {
          inQueueServer = false;
          this.queueingByMessage = false;
       } else {
-         if (this.autoQueue.getValue() && !this.queueingByMessage && mc.currentScreen instanceof GenericContainerScreen && this.queueMenuTimer.passedS(this.joinQueueDelay.getValue())) {
+         if (multiplayer && this.autoQueue.getValue() && !this.queueingByMessage && mc.currentScreen instanceof GenericContainerScreen && this.queueMenuTimer.passedS(this.joinQueueDelay.getValue())) {
             GenericContainerScreenHandler container = (GenericContainerScreenHandler)((GenericContainerScreen)mc.currentScreen).getScreenHandler();
             if (container != null && mc.player.currentScreenHandler.getCursorStack().isEmpty()) {
                int size = container.getInventory().size();

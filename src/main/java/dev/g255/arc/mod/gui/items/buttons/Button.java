@@ -78,4 +78,12 @@ public class Button extends Item {
 
       return (float)mouseX >= this.getX() && (float)mouseX <= this.getX() + (float)this.getWidth() && (float)mouseY >= this.getY() && (float)mouseY <= this.getY() + (float)this.height - 1.0F;
    }
+
+   /**
+    * 悬停判定用的区域：默认就是自己那一行。
+    * 展开的枚举下方会多长出若干选项行，那些行不属于 isHovering 的范围，由 EnumButton 扩展。
+    */
+   public boolean isHoveringArea(int mouseX, int mouseY) {
+      return this.isHovering(mouseX, mouseY);
+   }
 }

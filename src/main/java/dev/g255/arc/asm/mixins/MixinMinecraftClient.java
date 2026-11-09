@@ -158,11 +158,8 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
                   float t = (float)(System.currentTimeMillis() % 100000L) / 1000.0F;
                   ManagedShaderEffect gradient = Arc.SHADER.getShader(ShaderManager.Shader.Gradient);
                   gradient.setUniformValue("alpha2", 0.85F);
-                  gradient.setUniformValue("rgb", 0.78F, 0.05F, 0.59F);
-                  gradient.setUniformValue("rgb1", 0.56F, 0.06F, 0.68F);
-                  gradient.setUniformValue("rgb2", 0.93F, 0.12F, 0.63F);
-                  gradient.setUniformValue("rgb3", 0.64F, 0.0F, 0.64F);
-                  gradient.setUniformValue("step", 180.0F);
+                  // 这里是 gradient.fsh，不是主菜单那份渐变着色器：它没有 rgb/rgb1..3/step，
+                  // 设置不存在的 uniform 会被 Satin 抛异常，只保留 fsh 里真实存在的项。
                   gradient.setUniformValue("radius", 2.0F);
                   gradient.setUniformValue("quality", 1.0F);
                   gradient.setUniformValue("divider", 150.0F);
@@ -366,6 +363,13 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
 
    }
 
+   /**
+    * 覆盖原版窗口标题，改为「Arc 版本号 - 服务器类型」，并支持自定义标题。
+    *
+    * @author g255
+    * @reason 原版标题固定为 Minecraft 版本号，这里要换成客户端品牌名，
+    *         并在联机时追加单人/局域网/Realms/服务器等后缀；用 Inject 无法整体替换返回值，故用 Overwrite。
+    */
    @Overwrite
    private String getWindowTitle() {
       if (ClientSetting.INSTANCE == null) {

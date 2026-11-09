@@ -23,6 +23,17 @@ public class StringButton extends Button {
    private final Animation fillAnimation = new Animation();
    private final Animation hoverAnimation = new Animation();
 
+   @Override
+   public dev.g255.arc.mod.modules.settings.Setting getSetting() {
+      return this.setting;
+   }
+
+   /** 显示名每帧从配置项取：切换语言后不必重建 GUI，配置名立刻跟着变 */
+   @Override
+   public String getName() {
+      return this.setting.getDisplayName();
+   }
+
    public StringButton(StringSetting setting) {
       super(setting.getDisplayName());
       this.setting = setting;
