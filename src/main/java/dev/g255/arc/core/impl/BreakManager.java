@@ -125,6 +125,17 @@ public class BreakManager implements Wrapper {
       return this.isMining(pos, true);
    }
 
+   /** 找这个格子上正在进行的挖掘记录（忽略已失败的），没有则 null。 */
+   public BreakData getBreakData(BlockPos pos) {
+      for(BreakData data : this.breakMap.values()) {
+         if (data.getEntity() != null && !data.failed && data.pos.equals(pos)) {
+            return data;
+         }
+      }
+
+      return null;
+   }
+
    public boolean isMining(BlockPos pos, boolean self) {
       if (self && PacketMine.getBreakPos() != null && PacketMine.getBreakPos().equals(pos)) {
          return true;

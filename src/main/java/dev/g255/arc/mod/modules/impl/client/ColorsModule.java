@@ -1,3 +1,6 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
 package dev.g255.arc.mod.modules.impl.client;
 
 import dev.g255.arc.mod.modules.Module;
@@ -5,55 +8,50 @@ import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import java.awt.Color;
 
-public class ColorsModule extends Module {
-   public static ColorsModule INSTANCE;
-   public final EnumSetting<ColorMode> colorMode;
-   public final SliderSetting rainbowSpeed;
-   public final SliderSetting saturation;
-   public final SliderSetting rainbowDelay;
+public class ColorsModule
+extends Module {
+    public static ColorsModule INSTANCE;
+    public final EnumSetting<ColorMode> colorMode = this.add(new EnumSetting<ColorMode>("ColorMode", ColorMode.Custom));
+    public final SliderSetting rainbowSpeed = this.add(new SliderSetting("RainbowSpeed", 4.0, 1.0, 10.0, 0.1, () -> this.colorMode.getValue() == ColorMode.Rainbow));
+    public final SliderSetting saturation = this.add(new SliderSetting("Saturation", 130.0, 1.0, 255.0, () -> this.colorMode.getValue() == ColorMode.Rainbow));
+    public final SliderSetting rainbowDelay = this.add(new SliderSetting("Delay", 350, 0, 1000, () -> this.colorMode.getValue() == ColorMode.Rainbow));
 
-   public ColorsModule() {
-      super("Colors", Module.Category.Client);
-      this.colorMode = this.add(new EnumSetting("ColorMode", ColorsModule.ColorMode.Custom));
-      this.rainbowSpeed = this.add(new SliderSetting("RainbowSpeed", (double)4.0F, (double)1.0F, (double)10.0F, 0.1, () -> this.colorMode.getValue() == ColorsModule.ColorMode.Rainbow));
-      this.saturation = this.add(new SliderSetting("Saturation", (double)130.0F, (double)1.0F, (double)255.0F, () -> this.colorMode.getValue() == ColorsModule.ColorMode.Rainbow));
-      this.rainbowDelay = this.add(new SliderSetting("Delay", 350, 0, 1000, () -> this.colorMode.getValue() == ColorsModule.ColorMode.Rainbow));
-      this.setChinese("颜色");
-      INSTANCE = this;
-   }
+    public ColorsModule() {
+        super("Colors", Module.Category.Client);
+        this.setChinese("\u989c\u8272");
+        INSTANCE = this;
+    }
 
-   public void enable() {
-      this.state = true;
-   }
+    @Override
+    public void enable() {
+        this.state = true;
+    }
 
-   public void disable() {
-      this.state = true;
-   }
+    @Override
+    public void disable() {
+        this.state = true;
+    }
 
-   public boolean isOn() {
-      return true;
-   }
+    @Override
+    public boolean isOn() {
+        return true;
+    }
 
-   public Color getColor() {
-      return this.getColor((double)0.0F);
-   }
+    public Color getColor() {
+        return this.getColor(0.0);
+    }
 
-   public Color getColor(double delay) {
-      if (this.colorMode.getValue() == ColorsModule.ColorMode.Rainbow) {
-         double rainbowState = Math.ceil(((double)System.currentTimeMillis() * this.rainbowSpeed.getValue() + delay * this.rainbowDelay.getValue()) / (double)20.0F);
-         return Color.getHSBColor((float)(rainbowState % (double)360.0F / (double)360.0F), this.saturation.getValueFloat() / 255.0F, 1.0F);
-      } else {
-         return new Color(255, 0, 0);
-      }
-   }
+    public Color getColor(double delay) {
+        if (this.colorMode.getValue() == ColorMode.Rainbow) {
+            double rainbowState = Math.ceil(((double)System.currentTimeMillis() * this.rainbowSpeed.getValue() + delay * this.rainbowDelay.getValue()) / 20.0);
+            return Color.getHSBColor((float)(rainbowState % 360.0 / 360.0), this.saturation.getValueFloat() / 255.0f, 1.0f);
+        }
+        return new Color(255, 0, 0);
+    }
 
-   public static enum ColorMode {
-      Custom,
-      Rainbow;
-
-      // $FF: synthetic method
-      private static ColorMode[] $values() {
-         return new ColorMode[]{Custom, Rainbow};
-      }
-   }
+    public enum ColorMode {
+        Custom,
+        Rainbow
+    }
 }
+

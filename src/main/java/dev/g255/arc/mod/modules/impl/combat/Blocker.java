@@ -92,7 +92,7 @@ extends Module {
                 this.placePos.add(blockerPos);
             }
         }
-        if (this.face.getValue() && (!this.onlySurround.getValue() || SelfTrap.INSTANCE.isOn())) {
+        if (this.face.getValue() && (!this.onlySurround.getValue() || Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
             for (double x : offset) {
                 for (double z : offset) {
                     for (Direction i : Direction.values()) {
@@ -137,7 +137,7 @@ extends Module {
                 }
             }
         }
-        if (this.feet.getValue() && (!this.onlySurround.getValue() || SelfTrap.INSTANCE.isOn())) {
+        if (this.feet.getValue() && (!this.onlySurround.getValue() || Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
             for (double x : offset) {
                 for (double z : offset) {
                     for (Direction i : Direction.values()) {
@@ -160,7 +160,7 @@ extends Module {
                 }
             }
         }
-        if (this.feet.getValue() && this.extend.getValue() && (!this.onlySurround.getValue() || SelfTrap.INSTANCE.isOn())) {
+        if (this.feet.getValue() && this.extend.getValue() && (!this.onlySurround.getValue() || Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
             for (double x : offset) {
                 for (double z : offset) {
                     for (Direction i : Direction.values()) {

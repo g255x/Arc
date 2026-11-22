@@ -252,29 +252,37 @@ public class Render3DUtil implements Wrapper {
       return new Vector3f(xNormal / normalSqrt, yNormal / normalSqrt, zNormal / normalSqrt);
    }
 
+   /** TargetESP 的三个环共用 361 个角度，角度表只算一次，避免每帧 1083 次 sin/cos */
+   private static final int ESP_SEGMENTS = 361;
+   private static final double[] ESP_SIN = new double[ESP_SEGMENTS + 1];
+   private static final double[] ESP_COS = new double[ESP_SEGMENTS + 1];
+
+   static {
+      for (int i = 0; i <= ESP_SEGMENTS; i++) {
+         double rad = Math.toRadians(i % 360);
+         ESP_SIN[i] = Math.sin(rad);
+         ESP_COS[i] = Math.cos(rad);
+      }
+   }
+
    public static void drawTargetEsp(MatrixStack stack, @NotNull Entity target, Color color) {
-      ArrayList<Vec3d> vecs = new ArrayList();
-      ArrayList<Vec3d> vecs1 = new ArrayList();
-      ArrayList<Vec3d> vecs2 = new ArrayList();
+      ArrayList<Vec3d> vecs = new ArrayList<>(ESP_SEGMENTS + 1);
+      ArrayList<Vec3d> vecs1 = new ArrayList<>(ESP_SEGMENTS + 1);
+      ArrayList<Vec3d> vecs2 = new ArrayList<>(ESP_SEGMENTS + 1);
       double x = target.prevX + (target.getX() - target.prevX) * (double)getTickDelta() - mc.getEntityRenderDispatcher().camera.getPos().getX();
       double y = target.prevY + (target.getY() - target.prevY) * (double)getTickDelta() - mc.getEntityRenderDispatcher().camera.getPos().getY();
       double z = target.prevZ + (target.getZ() - target.prevZ) * (double)getTickDelta() - mc.getEntityRenderDispatcher().camera.getPos().getZ();
-      double height = (double)target.getHeight();
+      double baseHeight = (double)target.getHeight();
 
-      for(int i = 0; i <= 361; ++i) {
-         double v = Math.sin(Math.toRadians((double)i));
-         double u = Math.cos(Math.toRadians((double)i));
-         Vec3d vec = new Vec3d((double)((float)(u * (double)0.5F)), height, (double)((float)(v * (double)0.5F)));
-         vecs.add(vec);
-         double v1 = Math.sin(Math.toRadians((double)((i + 120) % 360)));
-         double u1 = Math.cos(Math.toRadians((double)(i + 120)) % (double)360.0F);
-         Vec3d vec1 = new Vec3d((double)((float)(u1 * (double)0.5F)), height, (double)((float)(v1 * (double)0.5F)));
-         vecs1.add(vec1);
-         double v2 = Math.sin(Math.toRadians((double)((i + 240) % 360)));
-         double u2 = Math.cos(Math.toRadians((double)((i + 240) % 360)));
-         Vec3d vec2 = new Vec3d((double)((float)(u2 * (double)0.5F)), height, (double)((float)(v2 * (double)0.5F)));
-         vecs2.add(vec2);
-         height -= (double)0.004F;
+      for(int i = 0; i <= ESP_SEGMENTS; ++i) {
+         // 螺旋：每一段下移 0.004，等价于原来的逐次 height -= 0.004F
+         double height = baseHeight - (double)0.004F * (double)i;
+         int i1 = (i + 120) % 360;
+         int i2 = (i + 240) % 360;
+         vecs.add(new Vec3d((float)(ESP_COS[i] * 0.5), height, (float)(ESP_SIN[i] * 0.5)));
+         // 原代码这里是 Math.toRadians(i + 120) % 360 —— 拿弧度取模 360，角度整体错位，已修正
+         vecs1.add(new Vec3d((float)(ESP_COS[i1] * 0.5), height, (float)(ESP_SIN[i1] * 0.5)));
+         vecs2.add(new Vec3d((float)(ESP_COS[i2] * 0.5), height, (float)(ESP_SIN[i2] * 0.5)));
       }
 
       stack.push();

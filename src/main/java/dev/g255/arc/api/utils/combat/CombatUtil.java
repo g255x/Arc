@@ -65,6 +65,14 @@ public class CombatUtil implements Wrapper {
             return;
          }
 
+         // 全局闸门：攻击包 = InteractEntity + 挥手，是所有模块里最重的一种动作。
+         // 以前这里完全不受配额约束（只有 attackDelay 自己的节流），
+         // 于是「清水晶 / 顺手打水晶」这类附带攻击叠在主流程上，一秒几十包就是这么来的
+         if (!PacketLimiter.acquire(PacketLimiter.attackCost(AntiCheat.INSTANCE.attackSwing.getValue()))
+               || !PacketLimiter.acquireAction()) {
+            return;
+         }
+
          breakTimer.reset();
          if (rotate && AntiCheat.INSTANCE.attackRotate.getValue()) {
             Arc.ROTATION.lookAt(attackVec);

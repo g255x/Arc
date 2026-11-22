@@ -11,6 +11,7 @@ import dev.g255.arc.api.utils.world.BlockUtil;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.combat.AutoAnchor;
+import dev.g255.arc.mod.modules.impl.combat.CrystalBot;
 import dev.g255.arc.mod.modules.impl.render.HoleESP;
 import dev.g255.arc.mod.modules.impl.render.PlaceRender;
 import java.util.Collections;
@@ -92,8 +93,28 @@ public class ThreadManager implements Wrapper {
                if (ThreadManager.this.tickRunning) {
                   Thread.onSpinWait();
                } else {
+                  // 切世界 / 退出服务器的那一瞬间 mc.world 会变成 null：
+                  // 各模块的 onThread 自己也会判空，但这里先统一挡一层，
+                  // 免得每个模块都要在同一帧竞态里各判一次
+                  if (mc.world == null || mc.player == null) {
+                     try {
+                        Thread.sleep(1L);
+                     } catch (InterruptedException interrupted) {
+                        return;
+                     }
+                     continue;
+                  }
+
                   HoleESP.INSTANCE.onThread();
                   AutoAnchor.INSTANCE.onThread();
+                  CrystalBot.INSTANCE.onThread();
+                  // 原来这里是无休止的忙等，后台线程会白吃满一个核；让出 1ms 后
+                  // 仍是每秒上千轮的刷新频率，功能不受影响，CPU 占用却能降下来
+                  try {
+                     Thread.sleep(1L);
+                  } catch (InterruptedException interrupted) {
+                     return;
+                  }
                }
             } catch (Exception e) {
                e.printStackTrace();

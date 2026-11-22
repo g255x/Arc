@@ -2,7 +2,6 @@
 
 uniform sampler2D DiffuseSampler;
 in vec2 texCoord;
-in vec2 oneTexel;
 out vec4 fragColor;
 
 uniform float quality;
@@ -52,7 +51,7 @@ float fbm(vec2 pos) {
 float glowShader() {
 
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {
@@ -66,11 +65,9 @@ float glowShader() {
     return alpha;
 }
 
-vec3 getColor(vec4 centerCol) {
-    float minrz = min(resolution.x, resolution.y);
-    vec2 p = (((vec2(2.0, 2.0) * gl_FragCoord.xy) - resolution.xy) * vec2((moreGradient / min(resolution.x, resolution.y)), (moreGradient / min(resolution.x, resolution.y))));
-
-    float t = 0.0;
+vec3 getColor() {
+    float minrz = max(min(resolution.x, resolution.y), 0.0001);
+    vec2 p = ((vec2(2.0, 2.0) * gl_FragCoord.xy) - resolution.xy) * (moreGradient / minrz);
 
     float time2 = 3.0 * time / 2.0;
 
@@ -78,16 +75,19 @@ vec3 getColor(vec4 centerCol) {
     q.x = fbm(p + 0.00);
     q.y = fbm(p + vec2(1.0));
 
-    vec4 temp = vec4(vec3(noise(p + vec2(1.0)), noise(p + factor * q + vec2(1.7, 9.2) + 0.15 * time2), noise(p + factor * q + vec2(8.3, 2.8) + 0.126 * time2)), alpha2);
-    return vec3(temp[0], temp[1], temp[2]);
+    return vec3(
+        noise(p + vec2(1.0)),
+        noise(p + factor * q + vec2(1.7, 9.2) + 0.15 * time2),
+        noise(p + factor * q + vec2(8.3, 2.8) + 0.126 * time2)
+    );
 }
 
 void main() {
     vec4 centerCol = texture(DiffuseSampler, texCoord);
 
     if (centerCol.a != 0) {
-        fragColor = vec4(getColor(centerCol), alpha2);
+        fragColor = vec4(getColor(), alpha2);
     } else {
-        fragColor = vec4(getColor(centerCol), glowShader());
+        fragColor = vec4(getColor(), glowShader());
     }
 }

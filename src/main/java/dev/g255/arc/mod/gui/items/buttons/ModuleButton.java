@@ -1,3 +1,9 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  net.minecraft.client.gui.DrawContext
+ */
 package dev.g255.arc.mod.gui.items.buttons;
 
 import dev.g255.arc.api.utils.math.Animation;
@@ -5,12 +11,9 @@ import dev.g255.arc.api.utils.math.Easing;
 import dev.g255.arc.api.utils.render.ColorUtil;
 import dev.g255.arc.api.utils.render.Render2DUtil;
 import dev.g255.arc.core.impl.FontManager;
-import dev.g255.arc.mod.gui.ClickGuiScreen;
 import dev.g255.arc.mod.gui.items.Item;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.impl.client.ClickGui;
-import dev.g255.arc.mod.modules.impl.client.HoverSound;
-import dev.g255.arc.mod.modules.settings.ChineseTranslator;
 import dev.g255.arc.mod.modules.settings.Setting;
 import dev.g255.arc.mod.modules.settings.impl.BindSetting;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
@@ -20,622 +23,601 @@ import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import dev.g255.arc.mod.modules.settings.impl.StringSetting;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.util.math.RotationAxis;
 
-public class ModuleButton extends Button {
-   private final Module module;
-   private List<Item> items = new ArrayList();
-   public boolean subOpen;
-   public double itemHeight;
-   public final Animation animation = new Animation();
-   private final Animation hoverAnimation = new Animation();
-   private final Animation toggleAnimation = new Animation();
-   private final HashMap<BooleanSetting, Animation> parentOpenAnimations = new HashMap();
-   private boolean prevHovered;
+public class ModuleButton
+extends Button {
+    private final Module module;
+    private List<Item> items = new ArrayList<Item>();
+    public boolean subOpen;
+    public double itemHeight;
+    public final Animation animation = new Animation();
+    /** 不挂在 module.getSettings() 上、但仍然画在设置列表下面的条目（HUD「元素」页用） */
+    private final java.util.List<Item> extraItems = new java.util.ArrayList<>();
+    /** 无视「元素 → 齿轮」开关，强制画展开指示器（HUD 元素页的二级条目用） */
+    private boolean forceIndicator;
 
-   public ModuleButton(Module module) {
-      super(module.getName());
-      this.module = module;
-      this.initSettings();
-   }
+    public void setForceIndicator(boolean force) {
+        this.forceIndicator = force;
+    }
+    private final Animation hoverAnimation = new Animation();
+    private final Animation toggleAnimation = new Animation();
+    private final java.util.HashMap<BooleanSetting, Animation> parentOpenAnimations = new java.util.HashMap<BooleanSetting, Animation>();
 
-   public void initSettings() {
-      ArrayList<Item> newItems = new ArrayList();
+    public ModuleButton(Module module) {
+        super(module.getName());
+        this.module = module;
+        this.initSettings();
+    }
 
-      for(Setting setting : this.module.getSettings()) {
-         if (setting instanceof BooleanSetting s) {
-            newItems.add(new BooleanButton(s));
-         }
-
-         if (setting instanceof BindSetting s) {
-            newItems.add(new BindButton(s));
-         }
-
-         if (setting instanceof StringSetting s) {
-            newItems.add(new StringButton(s));
-         }
-
-         if (setting instanceof SliderSetting s) {
-            newItems.add(new SliderButton(s));
-         }
-
-         if (setting instanceof EnumSetting<?> s) {
-            newItems.add(new EnumButton(s));
-         }
-
-         if (setting instanceof ColorSetting s) {
-            newItems.add(new PickerButton(s));
-         }
-      }
-
-      this.items = newItems;
-   }
-
-   /**
-    * 画一行配置，并顺便登记悬停：点开模块后把鼠标停在任意配置项上，
-    * ClickGuiScreen 会在鼠标旁画一个「只有说明、没有标题」的信息框。
-    */
-   private void drawItem(Item item, DrawContext context, int mouseX, int mouseY, float partialTicks) {
-      item.drawScreen(context, mouseX, mouseY, partialTicks);
-      Setting setting = item.getSetting();
-      if (setting != null
-         && item instanceof Button button
-         && button.isHoveringArea(mouseX, mouseY)
-         && mc.currentScreen instanceof ClickGuiScreen screen) {
-         screen.hoveredSetting = setting;
-         screen.hoveredSettingOption = button.getHoveredOption(mouseX, mouseY);
-         screen.tooltipMouseX = mouseX;
-         screen.tooltipMouseY = mouseY;
-      }
-
-   }
-
-   public void update() {
-      for(Item item : this.items) {
-         item.update();
-      }
-
-   }
-
-   public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
-      boolean hovered = this.isHovering(mouseX, mouseY);
-      if (hovered && !this.prevHovered && mc != null && mc.currentScreen instanceof ClickGuiScreen) {
-         HoverSound.onHover();
-      }
-
-      if (hovered && mc.currentScreen instanceof ClickGuiScreen screen) {
-         screen.hoveredModule = this.module;
-         screen.tooltipMouseX = mouseX;
-         screen.tooltipMouseY = mouseY;
-      }
-
-      this.prevHovered = hovered;
-      boolean pressed = this.getState();
-      double hoverProgress = this.hoverAnimation.get(hovered ? (double)1.0F : (double)0.0F, 100L, Easing.CubicInOut);
-      double toggleProgress = this.toggleAnimation.get(pressed ? (double)1.0F : (double)0.0F, 160L, Easing.CubicInOut);
-      double baseDelay = this.getColorDelay();
-      Color defaultColor = ClickGui.getInstance().defaultColor.getValue();
-      Color hoverColor = ClickGui.getInstance().hoverColor.getValue();
-      Color idleFill = new Color(defaultColor.getRed(), defaultColor.getGreen(), defaultColor.getBlue(), defaultColor.getAlpha());
-      int baseA = ClickGui.getInstance().alpha.getValueInt();
-      int hoverA = ClickGui.getInstance().hoverAlpha.getValueInt();
-      int accentA = Math.max(0, Math.min(255, (int)Math.round((double)baseA + (double)(hoverA - baseA) * hoverProgress)));
-      Color hoverFill = new Color(hoverColor.getRed(), hoverColor.getGreen(), hoverColor.getBlue(), hoverA);
-      Color unpressedFill = ColorUtil.fadeColor(idleFill, hoverFill, hoverProgress);
-      float h = (float)this.height - 0.5F;
-      float radius = Math.min(10.0F, Math.min((float)this.width, h) / 2.0F);
-      float toggleWipe = (float)Math.max((double)0.0F, Math.min((double)1.0F, toggleProgress));
-      if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum) {
-         Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, (float)this.width, h, unpressedFill);
-         float wipeW = (float)this.width * toggleWipe;
-         if (wipeW > 0.01F) {
-            Render2DUtil.drawLutRect(context.getMatrices(), this.x, this.y, wipeW, h, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), accentA);
-         }
-      } else {
-         Color accent = ClickGui.getInstance().getActiveColor(baseDelay);
-         Color pressedFill = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), accentA);
-         float wipe = (float)this.width * toggleWipe;
-         if (wipe <= 0.01F) {
-            Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, (float)this.width, h, unpressedFill);
-         } else if (wipe >= (float)this.width - 0.01F) {
-            Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, (float)this.width, h, pressedFill);
-         } else {
-            Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, wipe, h, pressedFill);
-            Render2DUtil.drawRect(context.getMatrices(), this.x + wipe, this.y, (float)this.width - wipe, h, unpressedFill);
-         }
-      }
-
-      float textY = this.getCenteredTextY(this.y, (float)this.height - 0.5F);
-      boolean shiftHeld = hovered && InputUtil.isKeyPressed(mc.getWindow().getHandle(), 340);
-      String text = shiftHeld ? ChineseTranslator.resetHint(false) : this.module.getDisplayName();
-      int textColor = shiftHeld ? enableTextColor : (!hovered && !this.getState() ? defaultTextColor : enableTextColor);
-      this.drawScaledString(text, this.x + 2.3F, textY, textColor, (float)hoverProgress);
-      if (ClickGui.getInstance().gear.booleanValue) {
-         if (!this.subOpen && !(this.itemHeight > (double)0.0F)) {
-            boolean var102 = false;
-         } else {
-            boolean var10000 = true;
-         }
-
-         double totalItemHeight = this.getVisibleItemHeight();
-         float expandProgress = totalItemHeight <= (double)0.0F ? 0.0F : (float)Math.max((double)0.0F, Math.min((double)1.0F, this.itemHeight / totalItemHeight));
-         int gearColor = ClickGui.getInstance().gear.getValue().getRGB();
-         switch ((ClickGui.ExpandIcon)ClickGui.getInstance().expandIcon.getValue()) {
-            case PlusMinus:
-               this.drawCrossfadeIcon("+", "-", (double)(this.x + (float)this.width - 8.0F), (double)textY, gearColor, expandProgress);
-               break;
-            case Chevron:
-               this.drawCrossfadeIcon(">", "v", (double)(this.x + (float)this.width - 8.0F), (double)textY, gearColor, expandProgress);
-               break;
-            case Gear:
-               float gearW = FontManager.icon.getWidth("d");
-               float gearH = FontManager.icon.getFontHeight("d");
-               float centerX = this.x + (float)this.width - radius;
-               float centerY = this.y + h / 2.0F;
-               float gearX = centerX - gearW / 2.0F;
-               float gearY = centerY - gearH / 2.0F;
-               if (expandProgress > 0.001F) {
-                  float angle = (float)(System.currentTimeMillis() % 2000L) / 2000.0F * 360.0F * expandProgress;
-                  context.getMatrices().push();
-                  context.getMatrices().translate(centerX, centerY, 0.0F);
-                  context.getMatrices().multiply(RotationAxis.POSITIVE_Z.rotationDegrees(angle));
-                  FontManager.icon.drawString(context.getMatrices(), "d", (double)(-gearW / 2.0F), (double)(-gearH / 2.0F), gearColor);
-                  context.getMatrices().pop();
-               } else {
-                  FontManager.icon.drawString(context.getMatrices(), "d", (double)gearX, (double)gearY, gearColor);
-               }
-         }
-      }
-
-      if (this.subOpen || this.itemHeight > (double)0.0F) {
-         double totalItemHeight = this.getVisibleItemHeight();
-         double visibleItemHeight = Math.max((double)0.0F, Math.min(this.itemHeight, totalItemHeight));
-         float expandProgress = totalItemHeight <= (double)0.0F ? 0.0F : (float)(visibleItemHeight / totalItemHeight);
-         if (this.subOpen && expandProgress < 0.9F) {
-            for(Item item : this.items) {
-               if (item instanceof SliderButton) {
-                  ((SliderButton)item).resetFillAnimation();
-               }
+    public void initSettings() {
+        ArrayList<Item> newItems = new ArrayList<Item>();
+        for (Setting setting : this.module.getSettings()) {
+            Setting s;
+            if (setting instanceof BooleanSetting) {
+                s = (BooleanSetting)setting;
+                newItems.add(new BooleanButton((BooleanSetting)s));
             }
-         }
+            if (setting instanceof BindSetting) {
+                s = (BindSetting)setting;
+                newItems.add(new BindButton((BindSetting)s));
+            }
+            if (setting instanceof StringSetting) {
+                s = (StringSetting)setting;
+                newItems.add(new StringButton((StringSetting)s));
+            }
+            if (setting instanceof SliderSetting) {
+                s = (SliderSetting)setting;
+                newItems.add(new SliderButton((SliderSetting)s));
+            }
+            if (setting instanceof EnumSetting) {
+                s = (EnumSetting)setting;
+                newItems.add(new EnumButton((EnumSetting<?>)s));
+            }
+            if (!(setting instanceof ColorSetting)) continue;
+            s = (ColorSetting)setting;
+            newItems.add(new PickerButton((ColorSetting)s));
+        }
+        this.items = newItems;
+    }
 
-         float slide = (1.0F - expandProgress) * 6.0F;
-         if (ClickGui.getInstance().line.getValue() && visibleItemHeight > 0.01) {
-            float yTop = this.y + (float)this.height - 0.5F;
-            float yBottom = (float)((double)(this.y + (float)this.height) + visibleItemHeight - (double)0.5F);
-            float yBottomLine = (float)((double)(this.y + (float)this.height) + visibleItemHeight - (double)0.7F);
-            double delayPerPixel = (double)0.25F;
-            float leftX = this.x + 0.6F;
-            float rightX = this.x + (float)this.width - 0.6F;
-            int alpha = Math.min(160, ClickGui.getInstance().topAlpha.getValueInt());
-            if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum) {
-               float lineW = 1.0F;
-               Render2DUtil.drawLutRect(context.getMatrices(), leftX, yTop, lineW, yBottom - yTop, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), alpha);
-               Render2DUtil.drawLutRect(context.getMatrices(), rightX - lineW, yTop, lineW, yBottom - yTop, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), alpha);
+    @Override
+    public void update() {
+        for (Item item : this.items) {
+            item.update();
+        }
+        for (Item extra : this.extraItems) {
+            extra.update();
+        }
+    }
+
+    /** 往设置列表下面挂一个额外条目（不参与 module.getSettings() 的索引） */
+    public void addExtraItem(Item item) {
+        this.extraItems.add(item);
+    }
+
+    public java.util.List<Item> getExtraItems() {
+        return this.extraItems;
+    }
+
+    @Override
+    public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
+        this.tickHoverSound(mouseX, mouseY);
+        boolean hovered = this.isHovering(mouseX, mouseY);
+        boolean pressed = this.getState();
+        double hoverProgress = this.hoverAnimation.get(hovered ? 1.0 : 0.0, 100L, Easing.CubicInOut);
+        double toggleProgress = this.toggleAnimation.get(pressed ? 1.0 : 0.0, 160L, Easing.CubicInOut);
+        double baseDelay = this.getColorDelay();
+        Color defaultColor = ClickGui.getInstance().defaultColor.getValue();
+        Color hoverColor = ClickGui.getInstance().hoverColor.getValue();
+        Color idleFill = new Color(defaultColor.getRed(), defaultColor.getGreen(), defaultColor.getBlue(), defaultColor.getAlpha());
+        int baseA = ClickGui.getInstance().alpha.getValueInt();
+        int hoverA = ClickGui.getInstance().hoverAlpha.getValueInt();
+        int accentA = Math.max(0, Math.min(255, (int)Math.round((double)baseA + (double)(hoverA - baseA) * hoverProgress)));
+        Color hoverFill = new Color(hoverColor.getRed(), hoverColor.getGreen(), hoverColor.getBlue(), hoverA);
+        Color unpressedFill = ColorUtil.fadeColor(idleFill, hoverFill, hoverProgress);
+        float h = (float)this.height - 0.5f;
+        float radius = Math.min(10.0f, Math.min(this.width, h) / 2.0f);
+        if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum) {
+            if (toggleProgress >= 0.999) {
+                Render2DUtil.drawLutRect(context.getMatrices(), this.x, this.y, (float)this.width, h, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), accentA);
             } else {
-               float segment = 2.0F;
-
-               for(float yy = yTop; yy < yBottom; yy += segment) {
-                  float yy2 = Math.min(yy + segment, yBottom);
-                  int c = ColorUtil.injectAlpha(ClickGui.getInstance().getColor((double)yy * delayPerPixel).getRGB(), alpha);
-                  Render2DUtil.drawLine(context.getMatrices(), leftX, yy2, leftX, yy, c);
-                  Render2DUtil.drawLine(context.getMatrices(), rightX, yy2, rightX, yy, c);
-               }
+                Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, this.width, h, unpressedFill);
+                int overlayA = (int)Math.round((double)accentA * toggleProgress);
+                if (overlayA > 0) {
+                    Render2DUtil.drawLutRect(context.getMatrices(), this.x, this.y, (float)this.width, h, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), overlayA);
+                }
             }
+        } else {
+            Color accent = ClickGui.getInstance().getActiveColor(baseDelay);
+            Color pressedFill = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), accentA);
+            Color baseFill = ColorUtil.fadeColor(unpressedFill, pressedFill, toggleProgress);
+            Render2DUtil.drawRect(context.getMatrices(), this.x, this.y, this.width, h, baseFill);
+        }
+        float textY = this.getCenteredTextY(this.y, (float)this.height - 0.5f);
+        if (hovered && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
+            this.drawString("Reset Default", (double)(this.x + 2.3f), (double)textY, enableTextColor);
+        } else {
+            this.drawString(this.module.getDisplayName(), (double)(this.x + 2.3f), (double)textY, this.getState() ? enableTextColor : defaultTextColor);
+        }
+        // 主模块页仍由「元素 → 齿轮」右侧那个复选框控制；
+        // HUD「元素」页里嵌着的这些二级条目强制画，否则用户根本看不出它们还能展开
+        if (ClickGui.getInstance().gear.booleanValue || this.forceIndicator) {
+            switch (ClickGui.getInstance().expandIcon.getValue()) {
+                case PlusMinus -> this.drawString(this.subOpen ? "-" : "+", (double)(this.x + (float)this.width - 8.0f), (double)textY, ClickGui.getInstance().gear.getValue().getRGB());
+                case Chevron -> this.drawString(this.subOpen ? "v" : ">", (double)(this.x + (float)this.width - 8.0f), (double)textY, ClickGui.getInstance().gear.getValue().getRGB());
+                case Gear -> {
+                    int gearColor = ClickGui.getInstance().gear.getValue().getRGB();
+                    float gearW = (float)FontManager.icon.getWidth("d");
+                    float gearH = (float)FontManager.icon.getFontHeight("d");
+                    float centerX = this.x + (float)this.width - radius;
+                    float centerY = this.y + h / 2.0f;
+                    float gearX = centerX - gearW / 2.0f;
+                    float gearY = centerY - gearH / 2.0f;
+                    int totalItemHeight = this.getItemHeight();
+                    float expandProgress = totalItemHeight <= 0 ? 0.0f : (float)Math.min(1.0, Math.max(0.0, this.itemHeight / (double)totalItemHeight));
+                    if (expandProgress > 0.001f) {
+                        float angle = (float)(System.currentTimeMillis() % 2000L) / 2000.0f * 360.0f * expandProgress;
+                        context.getMatrices().push();
+                        context.getMatrices().translate(centerX, centerY, 0.0f);
+                        context.getMatrices().multiply(RotationAxis.POSITIVE_Z.rotationDegrees(angle));
+                        FontManager.icon.drawString(context.getMatrices(), "d", (double)(-gearW / 2.0f), (double)(-gearH / 2.0f), gearColor);
+                        context.getMatrices().pop();
+                    } else {
+                        FontManager.icon.drawString(context.getMatrices(), "d", (double)gearX, (double)gearY, gearColor);
+                        // 画调试框：齿轮图标区域
+                        // Render2DUtil.drawRect(context.getMatrices(), gearX, gearY, gearW, gearH, new Color(255, 0, 0, 120).getRGB());
+                    }
+                }
+            }
+        }
+        if (this.subOpen || this.itemHeight > 0.0) {
+            double totalItemHeight = this.getVisibleItemHeight();
+            double visibleItemHeight = Math.max(0.0, Math.min(this.itemHeight, totalItemHeight));
+            float expandProgress = totalItemHeight <= 0.0 ? 0.0f : (float)(visibleItemHeight / totalItemHeight);
+            if (this.subOpen && expandProgress < 0.9f) {
+                for (Item item : this.items) {
+                    if (item instanceof SliderButton) {
+                        ((SliderButton)item).resetFillAnimation();
+                    }
+                }
+            }
+            float slide = (1.0f - expandProgress) * 6.0f;
+            if (ClickGui.getInstance().line.getValue() && visibleItemHeight > 0.01) {
+                float yTop = this.y + (float)this.height - 0.5f;
+                float yBottom = (float)((double)(this.y + (float)this.height) + visibleItemHeight - 0.5);
+                float yBottomLine = (float)((double)(this.y + (float)this.height) + visibleItemHeight - (double)0.7f);
+                double delayPerPixel = 0.25;
+                float leftX = this.x + 0.6f;
+                float rightX = this.x + (float)this.width - 0.6f;
+                int alpha = Math.min(160, ClickGui.getInstance().topAlpha.getValueInt());
+                if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum) {
+                    float lineW = 1.0f;
+                    Render2DUtil.drawLutRect(context.getMatrices(), leftX, yTop, lineW, yBottom - yTop, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), alpha);
+                    Render2DUtil.drawLutRect(context.getMatrices(), rightX - lineW, yTop, lineW, yBottom - yTop, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), alpha);
+                } else {
+                    float segment = 2.0f;
+                    for (float yy = yTop; yy < yBottom; yy += segment) {
+                        float yy2 = Math.min(yy + segment, yBottom);
+                        int c = ColorUtil.injectAlpha(ClickGui.getInstance().getColor((double)yy * delayPerPixel).getRGB(), alpha);
+                        Render2DUtil.drawLine(context.getMatrices(), leftX, yy2, leftX, yy, c);
+                        Render2DUtil.drawLine(context.getMatrices(), rightX, yy2, rightX, yy, c);
+                    }
+                }
+                int bottomColor = ColorUtil.injectAlpha(ClickGui.getInstance().getColor((double)yBottom * delayPerPixel).getRGB(), alpha);
+                Render2DUtil.drawLine(context.getMatrices(), leftX, yBottom, rightX, yBottomLine, bottomColor);
+            }
+            float height = this.height + 2;
+            List<Setting> settings = this.module.getSettings();
+            int i = 0;
+            while (i < this.items.size() && i < settings.size()) {
+                Setting setting = settings.get(i);
+                Item item = this.items.get(i);
+                item.setHeight(this.height);
+                double visibleH = item.getVisibleHeight();
+                if (visibleH <= 0.01 && item.isHidden()) {
+                    ++i;
+                    continue;
+                }
+                item.setLocation(this.x + 1.0f, this.y + height + slide);
+                item.setWidth(this.width - 9);
+                if (setting instanceof BooleanSetting && ((BooleanSetting)setting).hasParent()) {
+                    item.tickHoverSound(mouseX, mouseY);
+                    item.drawScreen(context, mouseX, mouseY, partialTicks);
+                    height += (float)(visibleH + 2.0);
+                    BooleanSetting parent = (BooleanSetting)setting;
+                    double openProgress = this.getParentOpenProgress(parent);
+                    int j = i + 1;
+                    while (j < settings.size()) {
+                        if (!this.isChildOf(parent, settings.get(j))) break;
+                        ++j;
+                    }
+                    double childrenFull = 0.0;
+                    for (int k = i + 1; k < j && k < this.items.size(); ++k) {
+                        if (!this.isVisibleWithParentOpen(parent, settings.get(k))) continue;
+                        Item child = this.items.get(k);
+                        child.setHeight(this.height);
+                        double childVisibleH = child.getVisibleHeight();
+                        if (childVisibleH <= 0.01 && child.isHidden()) continue;
+                        childrenFull += childVisibleH + 2.0;
+                    }
+                    double childrenVisible = childrenFull * openProgress;
+                    if (childrenVisible > 0.01) {
+                        float childSlide = (1.0f - (float)openProgress) * 6.0f;
+                        float childStartY = this.y + height + slide + childSlide;
+                        float childX = this.x + 2.0f;
+                        int childW = this.width - 11;
+                        int scissorX1 = (int)childX - 1;
+                        int scissorY1 = (int)childStartY - 1;
+                        int scissorX2 = (int)(childX + (float)childW + 8.0f) + 1;
+                        int scissorY2 = (int)Math.round((double)childStartY + childrenVisible) + 1;
+                        context.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
+                        float yOff = childStartY;
+                        for (int k = i + 1; k < j && k < this.items.size(); ++k) {
+                            if (!this.isVisibleWithParentOpen(parent, settings.get(k))) continue;
+                            Item child = this.items.get(k);
+                            child.setHeight(this.height);
+                            double childVisibleH = child.getVisibleHeight();
+                            if (childVisibleH <= 0.01 && child.isHidden()) continue;
+                            child.setLocation(childX, yOff);
+                            child.setWidth(childW);
+                            if (childVisibleH < (double)child.getHeight() - 0.01) {
+                                int cX1 = (int)child.getX() - 1;
+                                int cY1 = (int)child.getY() - 1;
+                                int cX2 = (int)(child.getX() + (float)child.getWidth() + 7.0f) + 1;
+                                int cY2 = (int)((double)child.getY() + childVisibleH) + 1;
+                                int iX1 = Math.max(scissorX1, cX1);
+                                int iY1 = Math.max(scissorY1, cY1);
+                                int iX2 = Math.min(scissorX2, cX2);
+                                int iY2 = Math.min(scissorY2, cY2);
+                                if (iX2 > iX1 && iY2 > iY1) {
+                                    context.enableScissor(iX1, iY1, iX2, iY2);
+                                    child.drawScreen(context, mouseX, mouseY, partialTicks);
+                                    context.disableScissor();
+                                }
+                            } else {
+                                child.drawScreen(context, mouseX, mouseY, partialTicks);
+                            }
+                            yOff += (float)(childVisibleH + 2.0);
+                        }
+                        context.disableScissor();
+                    }
+                    height += (float)childrenVisible;
+                    i = j;
+                    continue;
+                }
+                if (visibleH < (double)item.getHeight() - 0.01) {
+                    int scissorX1 = (int)item.getX() - 1;
+                    int scissorY1 = (int)item.getY() - 1;
+                    int scissorX2 = (int)(item.getX() + (float)item.getWidth() + 7.0f) + 1;
+                    int scissorY2 = (int)((double)item.getY() + visibleH) + 1;
+                    context.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
+                    item.tickHoverSound(mouseX, mouseY);
+                    item.drawScreen(context, mouseX, mouseY, partialTicks);
+                    context.disableScissor();
+                } else {
+                    item.tickHoverSound(mouseX, mouseY);
+                    item.drawScreen(context, mouseX, mouseY, partialTicks);
+                }
+                height += (float)(visibleH + 2.0);
+                ++i;
+            }
+            // 额外条目画在设置项下面，宽度和普通设置项一致
+            for (Item extra : this.extraItems) {
+                extra.setHeight(this.height);
+                double extraVisibleH = extra.getVisibleHeight();
+                if (extraVisibleH <= 0.01 && extra.isHidden()) {
+                    continue;
+                }
+                extra.setLocation(this.x + 1.0f, this.y + height + slide);
+                // 普通设置项（Boolean / Enum / Slider / Bind / String / Picker）绘制的实际宽度是
+                // width + 7，所以它们右边比所给宽度多出 7px；这里把额外条目的宽度补成 width - 2，
+                // 右边缘才会跟上面的设置项严丝合缝地对齐（+ 号也正好落在同一列）。
+                extra.setWidth(this.width - 2);
+                if (extraVisibleH < (double)extra.getHeight() - 0.01) {
+                    context.enableScissor((int)extra.getX() - 1, (int)extra.getY() - 1,
+                            (int)(extra.getX() + (float)extra.getWidth() + 7.0f) + 1,
+                            (int)((double)extra.getY() + extraVisibleH) + 1);
+                    extra.tickHoverSound(mouseX, mouseY);
+                    extra.drawScreen(context, mouseX, mouseY, partialTicks);
+                    context.disableScissor();
+                } else {
+                    extra.tickHoverSound(mouseX, mouseY);
+                    extra.drawScreen(context, mouseX, mouseY, partialTicks);
+                }
+                height += (float)(extraVisibleH + 2.0);
+            }
+        }
+    }
 
-            int bottomColor = ColorUtil.injectAlpha(ClickGui.getInstance().getColor((double)yBottom * delayPerPixel).getRGB(), alpha);
-            Render2DUtil.drawRect(context.getMatrices(), leftX, yBottom - 1.7F, rightX, yBottom - 0.7F, bottomColor);
-         }
+    @Override
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
+            this.resetSettingsToDefault();
+            ModuleButton.sound();
+            return;
+        }
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (!this.items.isEmpty()) {
+            if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
+                this.subOpen = !this.subOpen;
+                if (this.subOpen) {
+                    for (Item item : this.items) {
+                        if (item instanceof SliderButton) {
+                            ((SliderButton)item).resetFillAnimation();
+                        }
+                    }
+                }
+                ModuleButton.sound();
+                dev.g255.arc.mod.modules.impl.client.HoverSound.onExpand();
+            }
+            if (this.subOpen) {
+                for (Item item : this.items) {
+                    if (item.isHidden()) continue;
+                    item.mouseClicked(mouseX, mouseY, mouseButton);
+                }
+                for (Item extra : this.extraItems) {
+                    if (extra.isHidden()) continue;
+                    extra.mouseClicked(mouseX, mouseY, mouseButton);
+                }
+            }
+        }
+    }
 
-         float height = (float)(this.height + 2);
-         List<Setting> settings = this.module.getSettings();
-         int i = 0;
+    @Override
+    public void onKeyTyped(char typedChar, int keyCode) {
+        super.onKeyTyped(typedChar, keyCode);
+        if (!this.items.isEmpty() && this.subOpen) {
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                item.onKeyTyped(typedChar, keyCode);
+            }
+            for (Item extra : this.extraItems) {
+                if (extra.isHidden()) continue;
+                extra.onKeyTyped(typedChar, keyCode);
+            }
+        }
+    }
 
-         while(i < this.items.size() && i < settings.size()) {
-            Setting setting = (Setting)settings.get(i);
-            Item item = (Item)this.items.get(i);
+    @Override
+    public void onKeyPressed(int key) {
+        super.onKeyPressed(key);
+        if (!this.items.isEmpty() && this.subOpen) {
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                item.onKeyPressed(key);
+            }
+            for (Item extra : this.extraItems) {
+                if (extra.isHidden()) continue;
+                extra.onKeyPressed(key);
+            }
+        }
+    }
+
+    public int getButtonHeight() {
+        return super.getHeight();
+    }
+
+    public double getVisibleItemHeight() {
+        double height = 3.0;
+        List<Setting> settings = this.module.getSettings();
+        int i = 0;
+        while (i < this.items.size() && i < settings.size()) {
+            Setting setting = settings.get(i);
+            Item item = this.items.get(i);
             item.setHeight(this.height);
             double visibleH = item.getVisibleHeight();
             if (visibleH <= 0.01 && item.isHidden()) {
-               ++i;
-            } else {
-               item.setLocation(this.x + 1.0F, this.y + height + slide);
-               item.setWidth(this.width - 9);
-               if (setting instanceof BooleanSetting && ((BooleanSetting)setting).hasParent()) {
-                  this.drawItem(item, context, mouseX, mouseY, partialTicks);
-                  height += (float)(visibleH + (double)2.0F);
-                  BooleanSetting parent = (BooleanSetting)setting;
-                  double openProgress = this.getParentOpenProgress(parent);
-
-                  int j;
-                  for(j = i + 1; j < settings.size() && this.isChildOf(parent, (Setting)settings.get(j)); ++j) {
-                  }
-
-                  double childrenFull = (double)0.0F;
-
-                  for(int k = i + 1; k < j && k < this.items.size(); ++k) {
-                     if (this.isVisibleWithParentOpen(parent, (Setting)settings.get(k))) {
-                        Item child = (Item)this.items.get(k);
-                        child.setHeight(this.height);
-                        double childVisibleH = child.getVisibleHeight();
-                        if (!(childVisibleH <= 0.01) || !child.isHidden()) {
-                           childrenFull += childVisibleH + (double)2.0F;
-                        }
-                     }
-                  }
-
-                  double childrenVisible = childrenFull * openProgress;
-                  if (childrenVisible > 0.01) {
-                     float childSlide = (1.0F - (float)openProgress) * 6.0F;
-                     float childStartY = this.y + height + slide + childSlide;
-                     float childX = this.x + 2.0F;
-                     int childW = this.width - 11;
-                     int scissorX1 = (int)childX - 1;
-                     int scissorY1 = (int)childStartY - 1;
-                     int scissorX2 = (int)(childX + (float)childW + 8.0F) + 1;
-                     int scissorY2 = (int)Math.round((double)childStartY + childrenVisible) + 1;
-                     context.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
-                     float yOff = childStartY;
-
-                     for(int k = i + 1; k < j && k < this.items.size(); ++k) {
-                        if (this.isVisibleWithParentOpen(parent, (Setting)settings.get(k))) {
-                           Item child = (Item)this.items.get(k);
-                           child.setHeight(this.height);
-                           double childVisibleH = child.getVisibleHeight();
-                           if (!(childVisibleH <= 0.01) || !child.isHidden()) {
-                              child.setLocation(childX, yOff);
-                              child.setWidth(childW);
-                              if (childVisibleH < (double)child.getHeight() - 0.01) {
-                                 int cX1 = (int)child.getX() - 1;
-                                 int cY1 = (int)child.getY() - 1;
-                                 int cX2 = (int)(child.getX() + (float)child.getWidth() + 7.0F) + 1;
-                                 int cY2 = (int)((double)child.getY() + childVisibleH) + 1;
-                                 int iX1 = Math.max(scissorX1, cX1);
-                                 int iY1 = Math.max(scissorY1, cY1);
-                                 int iX2 = Math.min(scissorX2, cX2);
-                                 int iY2 = Math.min(scissorY2, cY2);
-                                 if (iX2 > iX1 && iY2 > iY1) {
-                                    context.enableScissor(iX1, iY1, iX2, iY2);
-                                    this.drawItem(child, context, mouseX, mouseY, partialTicks);
-                                    context.disableScissor();
-                                 }
-                              } else {
-                                 this.drawItem(child, context, mouseX, mouseY, partialTicks);
-                              }
-
-                              yOff += (float)(childVisibleH + (double)2.0F);
-                           }
-                        }
-                     }
-
-                     context.disableScissor();
-                  }
-
-                  height += (float)childrenVisible;
-                  i = j;
-               } else {
-                  if (visibleH < (double)item.getHeight() - 0.01) {
-                     int scissorX1 = (int)item.getX() - 1;
-                     int scissorY1 = (int)item.getY() - 1;
-                     int scissorX2 = (int)(item.getX() + (float)item.getWidth() + 7.0F) + 1;
-                     int scissorY2 = (int)((double)item.getY() + visibleH) + 1;
-                     context.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
-                     this.drawItem(item, context, mouseX, mouseY, partialTicks);
-                     context.disableScissor();
-                  } else {
-                     this.drawItem(item, context, mouseX, mouseY, partialTicks);
-                  }
-
-                  height += (float)(visibleH + (double)2.0F);
-                  ++i;
-               }
+                ++i;
+                continue;
             }
-         }
-      }
-
-   }
-
-   public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-      if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed(mc.getWindow().getHandle(), 340)) {
-         this.resetSettingsToDefault();
-         sound();
-      } else {
-         super.mouseClicked(mouseX, mouseY, mouseButton);
-         if (!this.items.isEmpty()) {
-            if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
-               this.subOpen = !this.subOpen;
-               if (this.subOpen) {
-                  for(Item item : this.items) {
-                     if (item instanceof SliderButton) {
-                        ((SliderButton)item).resetFillAnimation();
-                     }
-                  }
-               }
-
-               if (!HoverSound.onExpand()) {
-                  sound();
-               }
-            }
-
-            if (this.subOpen) {
-               for(Item item : this.items) {
-                  if (!item.isHidden()) {
-                     item.mouseClicked(mouseX, mouseY, mouseButton);
-                  }
-               }
-            }
-         }
-
-      }
-   }
-
-   private void drawScaledString(String text, float x, float y, int color, float hoverProgress) {
-      if (hoverProgress <= 0.01F) {
-         this.drawString(text, (double)x, (double)y, color);
-      } else {
-         float scale = 1.0F + 0.035F * hoverProgress;
-         float pivotY = y + (float)this.getFontHeight() / 2.0F;
-         context.getMatrices().push();
-         context.getMatrices().translate(x, pivotY, 0.0F);
-         context.getMatrices().scale(scale, scale, 1.0F);
-         context.getMatrices().translate(-x, -pivotY, 0.0F);
-         this.drawString(text, (double)x, (double)y, color);
-         context.getMatrices().pop();
-      }
-   }
-
-   private void drawCrossfadeIcon(String collapseIcon, String expandIcon, double x, double y, int color, float progress) {
-      int alpha = color >>> 24 & 255;
-      float outProgress = progress < 0.5F ? 1.0F - progress * 2.0F : 0.0F;
-      float inProgress = progress < 0.5F ? 0.0F : (progress - 0.5F) * 2.0F;
-      if (outProgress > 0.01F) {
-         this.drawString(collapseIcon, x, y, ColorUtil.injectAlpha(color, Math.round((float)alpha * outProgress)));
-      }
-
-      if (inProgress > 0.01F) {
-         this.drawString(expandIcon, x, y, ColorUtil.injectAlpha(color, Math.round((float)alpha * inProgress)));
-      }
-
-   }
-
-   public void onKeyTyped(char typedChar, int keyCode) {
-      super.onKeyTyped(typedChar, keyCode);
-      if (!this.items.isEmpty() && this.subOpen) {
-         for(Item item : this.items) {
-            if (!item.isHidden()) {
-               item.onKeyTyped(typedChar, keyCode);
-            }
-         }
-      }
-
-   }
-
-   public void onKeyPressed(int key) {
-      super.onKeyPressed(key);
-      if (!this.items.isEmpty() && this.subOpen) {
-         for(Item item : this.items) {
-            if (!item.isHidden()) {
-               item.onKeyPressed(key);
-            }
-         }
-      }
-
-   }
-
-   public int getButtonHeight() {
-      return super.getHeight();
-   }
-
-   public double getVisibleItemHeight() {
-      double height = (double)3.0F;
-      List<Setting> settings = this.module.getSettings();
-      int i = 0;
-
-      while(i < this.items.size() && i < settings.size()) {
-         Setting setting = (Setting)settings.get(i);
-         Item item = (Item)this.items.get(i);
-         item.setHeight(this.height);
-         double visibleH = item.getVisibleHeight();
-         if (visibleH <= 0.01 && item.isHidden()) {
-            ++i;
-         } else {
-            height += visibleH + (double)2.0F;
+            height += visibleH + 2.0;
             if (setting instanceof BooleanSetting && ((BooleanSetting)setting).hasParent()) {
-               BooleanSetting parent = (BooleanSetting)setting;
-               double openProgress = this.getParentOpenProgress(parent);
-
-               int j;
-               for(j = i + 1; j < settings.size() && this.isChildOf(parent, (Setting)settings.get(j)); ++j) {
-               }
-
-               double childrenFull = (double)0.0F;
-
-               for(int k = i + 1; k < j && k < this.items.size(); ++k) {
-                  if (this.isVisibleWithParentOpen(parent, (Setting)settings.get(k))) {
-                     Item child = (Item)this.items.get(k);
-                     child.setHeight(this.height);
-                     double childVisibleH = child.getVisibleHeight();
-                     if (!(childVisibleH <= 0.01) || !child.isHidden()) {
-                        childrenFull += childVisibleH + (double)2.0F;
-                     }
-                  }
-               }
-
-               height += childrenFull * openProgress;
-               i = j;
-            } else {
-               ++i;
+                BooleanSetting parent = (BooleanSetting)setting;
+                double openProgress = this.getParentOpenProgress(parent);
+                int j = i + 1;
+                while (j < settings.size()) {
+                    if (!this.isChildOf(parent, settings.get(j))) break;
+                    ++j;
+                }
+                double childrenFull = 0.0;
+                for (int k = i + 1; k < j && k < this.items.size(); ++k) {
+                    if (!this.isVisibleWithParentOpen(parent, settings.get(k))) continue;
+                    Item child = this.items.get(k);
+                    child.setHeight(this.height);
+                    double childVisibleH = child.getVisibleHeight();
+                    if (childVisibleH <= 0.01 && child.isHidden()) continue;
+                    childrenFull += childVisibleH + 2.0;
+                }
+                height += childrenFull * openProgress;
+                i = j;
+                continue;
             }
-         }
-      }
+            ++i;
+        }
+        // 额外条目（例如 HUD 模块「元素」页里嵌进去的各个界面元素模块）
+        for (Item extra : this.extraItems) {
+            extra.setHeight(this.height);
+            double visibleH = extra.getVisibleHeight();
+            if (visibleH <= 0.01 && extra.isHidden()) {
+                continue;
+            }
+            height += visibleH + 2.0;
+        }
+        return height;
+    }
 
-      return height;
-   }
+    public int getItemHeight() {
+        return (int)Math.round(this.getVisibleItemHeight());
+    }
 
-   public int getItemHeight() {
-      return (int)Math.round(this.getVisibleItemHeight());
-   }
+    private void resetSettingsToDefault() {
+        for (Setting setting : this.module.getSettings()) {
+            this.resetSettingToDefault(setting);
+        }
+    }
 
-   private void resetSettingsToDefault() {
-      for(Setting setting : this.module.getSettings()) {
-         this.resetSettingToDefault(setting);
-      }
-
-      this.module.onSettingsReset();
-   }
-
-   public void resetChildSettingsToDefault(BooleanSetting parent) {
-      boolean originalOpen = parent.isOpen();
-
-      for(Setting setting : this.module.getSettings()) {
-         if (setting != parent) {
+    public void resetChildSettingsToDefault(BooleanSetting parent) {
+        boolean originalOpen = parent.isOpen();
+        for (Setting setting : this.module.getSettings()) {
+            if (setting == parent) continue;
             parent.setOpen(true);
             boolean visibleWhenOpen = setting.isVisible();
             parent.setOpen(false);
             boolean visibleWhenClosed = setting.isVisible();
             parent.setOpen(originalOpen);
             if (visibleWhenOpen && !visibleWhenClosed) {
-               if (setting instanceof BooleanSetting) {
-                  BooleanSetting s = (BooleanSetting)setting;
-                  if (s.hasParent()) {
-                     this.resetChildSettingsToDefault(s);
-                  }
-               }
-
-               this.resetSettingToDefault(setting);
+                if (setting instanceof BooleanSetting) {
+                    BooleanSetting s = (BooleanSetting)setting;
+                    if (s.hasParent()) {
+                        this.resetChildSettingsToDefault(s);
+                    }
+                }
+                this.resetSettingToDefault(setting);
             }
-         }
-      }
+        }
+    }
 
-   }
-
-   public void resetPageSettingsToDefault(EnumSetting<?> page) {
-      Enum current = page.getValue();
-      Enum[] values = (Enum[])current.getDeclaringClass().getEnumConstants();
-      String originalName = current.name();
-      page.setEnumValue(originalName);
-
-      for(Setting setting : this.module.getSettings()) {
-         if (setting != page) {
+    public void resetPageSettingsToDefault(EnumSetting<?> page) {
+        Enum current = (Enum)page.getValue();
+        Enum[] values = (Enum[])current.getDeclaringClass().getEnumConstants();
+        String originalName = current.name();
+        page.setEnumValue(originalName);
+        for (Setting setting : this.module.getSettings()) {
+            if (setting == page) continue;
             page.setEnumValue(originalName);
             boolean visibleInCurrent = setting.isVisible();
-            if (visibleInCurrent) {
-               boolean visibleInAll = true;
-
-               for(Enum e : values) {
-                  page.setEnumValue(e.name());
-                  if (!setting.isVisible()) {
-                     visibleInAll = false;
-                     break;
-                  }
-               }
-
-               page.setEnumValue(originalName);
-               if (!visibleInAll) {
-                  if (setting instanceof BooleanSetting) {
-                     BooleanSetting s = (BooleanSetting)setting;
-                     if (s.hasParent()) {
-                        this.resetChildSettingsToDefault(s);
-                     }
-                  }
-
-                  this.resetSettingToDefault(setting);
-               }
+            if (!visibleInCurrent) continue;
+            boolean visibleInAll = true;
+            for (Enum e : values) {
+                page.setEnumValue(e.name());
+                if (setting.isVisible()) continue;
+                visibleInAll = false;
+                break;
             }
-         }
-      }
+            page.setEnumValue(originalName);
+            if (visibleInAll) continue;
+            if (setting instanceof BooleanSetting) {
+                BooleanSetting s = (BooleanSetting)setting;
+                if (s.hasParent()) {
+                    this.resetChildSettingsToDefault(s);
+                }
+            }
+            this.resetSettingToDefault(setting);
+        }
+        page.setEnumValue(originalName);
+    }
 
-      page.setEnumValue(originalName);
-   }
+    private double getParentOpenProgress(BooleanSetting parent) {
+        Animation anim = (Animation)this.parentOpenAnimations.get(parent);
+        if (anim == null) {
+            anim = new Animation();
+            this.parentOpenAnimations.put(parent, anim);
+        }
+        return anim.get(parent.isOpen() ? 1.0 : 0.0, 200L, Easing.CubicInOut);
+    }
 
-   private double getParentOpenProgress(BooleanSetting parent) {
-      Animation anim = (Animation)this.parentOpenAnimations.get(parent);
-      if (anim == null) {
-         anim = new Animation();
-         this.parentOpenAnimations.put(parent, anim);
-      }
+    private boolean isChildOf(BooleanSetting parent, Setting setting) {
+        boolean originalOpen = parent.isOpen();
+        parent.setOpen(true);
+        boolean visibleWhenOpen = setting.isVisible();
+        parent.setOpen(false);
+        boolean visibleWhenClosed = setting.isVisible();
+        parent.setOpen(originalOpen);
+        return visibleWhenOpen && !visibleWhenClosed;
+    }
 
-      return anim.get(parent.isOpen() ? (double)1.0F : (double)0.0F, 200L, Easing.CubicInOut);
-   }
+    private boolean isVisibleWithParentOpen(BooleanSetting parent, Setting setting) {
+        boolean originalOpen = parent.isOpen();
+        parent.setOpen(true);
+        boolean visible = setting.isVisible();
+        parent.setOpen(originalOpen);
+        return visible;
+    }
 
-   private boolean isChildOf(BooleanSetting parent, Setting setting) {
-      boolean originalOpen = parent.isOpen();
-      parent.setOpen(true);
-      boolean visibleWhenOpen = setting.isVisible();
-      parent.setOpen(false);
-      boolean visibleWhenClosed = setting.isVisible();
-      parent.setOpen(originalOpen);
-      return visibleWhenOpen && !visibleWhenClosed;
-   }
-
-   private boolean isVisibleWithParentOpen(BooleanSetting parent, Setting setting) {
-      boolean originalOpen = parent.isOpen();
-      parent.setOpen(true);
-      boolean visible = setting.isVisible();
-      parent.setOpen(originalOpen);
-      return visible;
-   }
-
-   private void resetSettingToDefault(Setting setting) {
-      if (setting instanceof BooleanSetting s) {
-         s.setValue(s.getDefaultValue());
-         if (s.hasParent()) {
-            s.setOpen(false);
-         }
-
-      } else if (setting instanceof SliderSetting s) {
-         s.setValue(s.getDefaultValue());
-      } else if (setting instanceof StringSetting s) {
-         s.setValue(s.getDefaultValue());
-      } else if (setting instanceof BindSetting s) {
-         s.setValue(s.getDefaultValue());
-         s.setHoldEnable(false);
-         s.setPressed(false);
-         s.holding = false;
-      } else if (setting instanceof EnumSetting<?> s) {
-         Enum defaultValue = s.getDefaultValue();
-         s.setEnumValue(defaultValue.name());
-      } else {
-         if (setting instanceof ColorSetting s) {
+    private void resetSettingToDefault(Setting setting) {
+        if (setting instanceof BooleanSetting) {
+            BooleanSetting s = (BooleanSetting)setting;
+            s.setValue(s.getDefaultValue());
+            if (s.hasParent()) {
+                s.setOpen(false);
+            }
+            return;
+        }
+        if (setting instanceof SliderSetting) {
+            SliderSetting s = (SliderSetting)setting;
+            s.setValue(s.getDefaultValue());
+            return;
+        }
+        if (setting instanceof StringSetting) {
+            StringSetting s = (StringSetting)setting;
+            s.setValue(s.getDefaultValue());
+            return;
+        }
+        if (setting instanceof BindSetting) {
+            BindSetting s = (BindSetting)setting;
+            s.setValue(s.getDefaultValue());
+            s.setHoldEnable(false);
+            s.setPressed(false);
+            s.holding = false;
+            return;
+        }
+        if (setting instanceof EnumSetting) {
+            EnumSetting<?> s = (EnumSetting<?>)setting;
+            Enum defaultValue = (Enum)s.getDefaultValue();
+            s.setEnumValue(defaultValue.name());
+            return;
+        }
+        if (setting instanceof ColorSetting) {
+            ColorSetting s = (ColorSetting)setting;
             s.setValue(s.getDefaultValue());
             s.rainbow = s.getDefaultRainbow();
             if (s.injectBoolean) {
-               s.booleanValue = s.getDefaultBooleanValue();
+                s.booleanValue = s.getDefaultBooleanValue();
             }
-         }
+        }
+    }
 
-      }
-   }
-
-   public int getHeight() {
-      if (this.subOpen) {
-         int height = super.getHeight();
-
-         for(Item item : this.items) {
-            if (!item.isHidden()) {
-               height += item.getHeight() + 1;
+    @Override
+    public int getHeight() {
+        if (this.subOpen) {
+            int height = super.getHeight();
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                height += item.getHeight() + 1;
             }
-         }
+            return height + 2;
+        }
+        return super.getHeight();
+    }
 
-         return height + 2;
-      } else {
-         return super.getHeight();
-      }
-   }
+    public Module getModule() {
+        return this.module;
+    }
 
-   public Module getModule() {
-      return this.module;
-   }
+    /** 模块介绍（中文/英文随语言设置切换） */
+    @Override
+    public String getTooltip() {
+        return this.module.getDescription();
+    }
 
-   public void toggle() {
-      this.module.toggle();
-   }
+    /** 供 GUI 做悬停命中的设置项列表（顺序与 module.getSettings() 一致） */
+    public List<Item> getSettingsItems() {
+        return this.items;
+    }
 
-   public boolean getState() {
-      return this.module.isOn();
-   }
+    @Override
+    public void toggle() {
+        this.module.toggle();
+        dev.g255.arc.mod.modules.impl.client.HoverSound.onModuleToggle();
+    }
+
+    @Override
+    public boolean getState() {
+        return this.module.isOn();
+    }
 }
+

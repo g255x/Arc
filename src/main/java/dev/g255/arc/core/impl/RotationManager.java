@@ -54,6 +54,41 @@ public class RotationManager implements Wrapper {
    public static float fixPitch;
    private float prevYaw;
    private float prevPitch;
+   /**
+    * 旋转独占锁：优先级 / 到期 tick。
+    *
+    * <p>珍珠穿墙这种「这一 tick 的朝向错一点就整发珍珠飞歪」的动作，光靠
+    * {@code RotationEvent} 的 priority 不够 —— 别的模块走的是 {@link #lookAt}/{@link #snapAt}
+    * 这条即时通道，根本不看 priority，照样能把朝向拽走。锁期间，任何
+    * priority 低于锁的即时转向请求全部丢弃。</p>
+    */
+   private static float lockPriority = 0.0F;
+   private static long lockUntilMs = 0L;
+
+   /**
+    * 朝向包配额。
+    *
+    * <p>「瞬转」这条路每调用一次就发一个 {@code LookAndOnGround}。自围一圈 4 块、
+    * 锚光环「塞 + 充能」、水晶摆放……全挤在同一 tick 里就是十几个朝向包，
+    * 服务端看到的是「这个人的头在一 tick 内甩了十几下」，比交互包本身更容易被盯上。</p>
+    *
+    * <p>所以这里做两件事：</p>
+    * <ul>
+    *   <li><b>去重</b>：本 tick 已经发过同一个角度（差 &lt; 0.05°）就不再发 ——
+    *       服务端看到的朝向本来就是那个方向，多发一个是纯浪费；</li>
+    *   <li><b>配额</b>：每 tick 最多发几个，超了就让调用方<b>放弃这次动作</b>
+    *       （不是让动作带着旧朝向发出去 —— 那样服务端会判「朝向对不上」）。</li>
+    * </ul>
+    */
+   private static final long[] rotationTimes = new long[16];
+   private static int rotationCursor;
+   private static long lastRotationMs = -1000000L;
+   private static float sentYaw = Float.NaN;
+   private static float sentPitch = Float.NaN;
+
+   static {
+      java.util.Arrays.fill(rotationTimes, -1000000L);
+   }
 
    public RotationManager() {
       Arc.EVENT_BUS.subscribe(this);
@@ -105,6 +140,10 @@ public class RotationManager implements Wrapper {
    }
 
    public void lookAt(Vec3d directionVec) {
+      if (isLocked(0.0F)) {
+         return;
+      }
+
       this.rotationTo(directionVec);
       this.snapAt(directionVec);
    }
@@ -114,22 +153,158 @@ public class RotationManager implements Wrapper {
       this.lookAt(hitVec);
    }
 
+   /**
+    * 申请独占朝向若干 tick。只有优先级不低于当前锁才生效，
+    * 所以珍珠穿墙（100）能压住锚光环 / 陷阱（10 左右）。
+    *
+    * <p>用毫秒记而不是玩家 age：过图 / 重生会把 age 归零，
+    * 那时用 age 比较会让锁一直「未来到期」，转向就再也恢复不了了。</p>
+    */
+   public static void lockRotation(float priority, int ticks) {
+      long now = System.currentTimeMillis();
+      if (priority < lockPriority && now <= lockUntilMs) {
+         return;
+      }
+
+      lockPriority = priority;
+      lockUntilMs = now + (long)Math.max(1, ticks) * 50L;
+   }
+
+   /** 当前是否被更高优先级的动作锁住（precision：请求方自己的优先级） */
+   public static boolean isLocked(float priority) {
+      return priority < lockPriority && System.currentTimeMillis() <= lockUntilMs;
+   }
+
+   public static void clearRotationLock() {
+      lockUntilMs = 0L;
+      lockPriority = 0.0F;
+   }
+
    public void snapAt(float yaw, float pitch) {
+      this.snapAt(yaw, pitch, 0.0F);
+   }
+
+   public void snapAt(float yaw, float pitch, float priority) {
+      // 被更高优先级的动作锁着：这一发朝向不能动，否则珍珠/关键发包直接飞歪
+      if (isLocked(priority)) {
+         return;
+      }
+
+      // NaN 朝向发进服务端会被踢/回弹，直接放弃这次转向
+      if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+         return;
+      }
+
+      if (!this.reserveRotation(yaw, pitch, priority)) {
+         return;
+      }
+
       this.setRenderRotation(yaw, pitch, true);
+   }
+
+   /**
+    * 让服务端看到的朝向对准 {@code vec}，并告诉调用方「现在能不能基于这个朝向发交互包」。
+    *
+    * <p>放置 / 点击方块之前必须先过这一关：返回 false 就<b>别发包</b>。
+    * 原来无论朝向配额有没有都会照发，结果是要么朝向对不上被顶回来（废包 + 被记录），
+    * 要么一 tick 甩十几次头。</p>
+    */
+   public boolean aim(Vec3d vec, float priority) {
+      if (mc.player == null || vec == null) {
+         return false;
+      }
+
+      if (isLocked(priority)) {
+         return false;
+      }
+
+      float[] angle = getRotation(vec);
+      return this.aimAt(angle[0], angle[1], priority);
+   }
+
+   /** 同 {@link #aim(Vec3d, float)}，直接给角度 */
+   public boolean aimAt(float yaw, float pitch, float priority) {
+      if (mc.player == null) {
+         return false;
+      }
+
+      if (isLocked(priority)) {
+         return false;
+      }
+
+      if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+         return false;
+      }
+
+      if (!this.reserveRotation(yaw, pitch, priority)) {
+         return false;
+      }
+
+      this.setRenderRotation(yaw, pitch, true);
+      return true;
+   }
+
+   /**
+    * 占一个朝向包额度，需要时把包发出去。
+    *
+    * @return true = 服务端现在看到的就是这个朝向（本 tick 已经发过同一个角度，或者刚发出去）
+    */
+   private boolean reserveRotation(float yaw, float pitch, float priority) {
+      int cap = 4;
+      if (AntiCheat.INSTANCE != null) {
+         cap = Math.max(1, AntiCheat.INSTANCE.rotationLimit.getValueInt());
+      }
+
+      long now = System.currentTimeMillis();
+      synchronized (RotationManager.class) {
+         // 刚刚（50ms 内）已经把这个角度发出去过：服务端看到的就是它，不用重复发
+         if (now - lastRotationMs < 50L && Float.isFinite(sentYaw)
+               && Math.abs(MathHelper.wrapDegrees(yaw - sentYaw)) < 0.05F
+               && Math.abs(pitch - sentPitch) < 0.05F) {
+            return true;
+         }
+
+         // 滑动窗口：最近 cap 发里最老的那发还不到 50ms 就是超速了
+         int oldestSlot = (rotationCursor + rotationTimes.length - cap) % rotationTimes.length;
+         // 珍珠穿墙这类关键动作不受配额限制，否则会被普通放置挤掉
+         if (priority < 50.0F && now - rotationTimes[oldestSlot] < 50L) {
+            return false;
+         }
+
+         rotationTimes[rotationCursor] = now;
+         rotationCursor = (rotationCursor + 1) % rotationTimes.length;
+         lastRotationMs = now;
+         sentYaw = yaw;
+         sentPitch = pitch;
+      }
+
       if (AntiCheat.INSTANCE.grimRotation.getValue()) {
          mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), yaw, pitch, mc.player.isOnGround()));
       } else {
          mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround()));
       }
 
+      return true;
    }
 
    public void snapAt(Vec3d directionVec) {
+      this.snapAt(directionVec, 0.0F);
+   }
+
+   public void snapAt(Vec3d directionVec, float priority) {
+      if (isLocked(priority)) {
+         return;
+      }
+
       float[] angle = getRotation(directionVec);
-      this.snapAt(angle[0], angle[1]);
+      this.snapAt(angle[0], angle[1], priority);
    }
 
    public void rotationTo(Vec3d vec3d) {
+      if (isLocked(0.0F)) {
+         return;
+      }
+
       ROTATE_TIMER.reset();
       directionVec = vec3d;
    }
@@ -155,8 +330,8 @@ public class RotationManager implements Wrapper {
    @EventListener
    public void update(SendMovementPacketsEvent event) {
       if (AntiCheat.INSTANCE.movementSync() && !BaritoneUtil.isActive()) {
-         event.setYaw(this.nextYaw);
-         event.setPitch(this.nextPitch);
+         event.setYaw(Float.isFinite(this.nextYaw) ? this.nextYaw : event.getYaw());
+         event.setPitch(Float.isFinite(this.nextPitch) ? this.nextPitch : event.getPitch());
       } else {
          UpdateRotateEvent updateRotateEvent = UpdateRotateEvent.get(event.getYaw(), event.getPitch());
          Arc.EVENT_BUS.post(updateRotateEvent);
@@ -213,8 +388,8 @@ public class RotationManager implements Wrapper {
                if (e.isPre()) {
                   this.prevYaw = mc.player.getYaw();
                   this.prevPitch = mc.player.getPitch();
-                  mc.player.setYaw(fixYaw);
-                  mc.player.setPitch(fixPitch);
+                  mc.player.setYaw(Float.isFinite(fixYaw) ? fixYaw : this.prevYaw);
+                  mc.player.setPitch(Float.isFinite(fixPitch) ? fixPitch : this.prevPitch);
                } else {
                   mc.player.setYaw(this.prevYaw);
                   mc.player.setPitch(this.prevPitch);
@@ -233,8 +408,8 @@ public class RotationManager implements Wrapper {
                if (e.isPre()) {
                   this.prevYaw = mc.player.getYaw();
                   this.prevPitch = mc.player.getPitch();
-                  mc.player.setYaw(fixYaw);
-                  mc.player.setPitch(fixPitch);
+                  mc.player.setYaw(Float.isFinite(fixYaw) ? fixYaw : this.prevYaw);
+                  mc.player.setPitch(Float.isFinite(fixPitch) ? fixPitch : this.prevPitch);
                } else {
                   mc.player.setYaw(this.prevYaw);
                   mc.player.setPitch(this.prevPitch);
@@ -300,6 +475,13 @@ public class RotationManager implements Wrapper {
       float clampedPitchDelta = MathHelper.clamp(pitchDelta, -45.0F, 45.0F);
       float newYaw = currentYaw + (yawDelta > 0.0F ? clampedYawDelta : -clampedYawDelta);
       float newPitch = MathHelper.clamp(currentPitch + clampedPitchDelta, -90.0F, 90.0F);
+      // 目标坐标是 NaN 时不要把 NaN 传出去（会跟着发包含进服务端）
+      if (!Float.isFinite(newYaw) || !Float.isFinite(newPitch)) {
+         float fallbackYaw = Float.isFinite(currentYaw) ? currentYaw : mc.player.getYaw();
+         float fallbackPitch = Float.isFinite(currentPitch) ? currentPitch : mc.player.getPitch();
+         return new float[]{fallbackYaw, fallbackPitch};
+      }
+
       return new float[]{newYaw, newPitch};
    }
 
@@ -324,6 +506,13 @@ public class RotationManager implements Wrapper {
       float clampedPitchDelta = MathHelper.clamp(pitchDelta, -pitchStepVal, pitchStepVal);
       float newYaw = currentYaw + (yawDelta > 0.0F ? clampedYawDelta : -clampedYawDelta);
       float newPitch = MathHelper.clamp(currentPitch + clampedPitchDelta, -90.0F, 90.0F);
+      // 目标坐标是 NaN 时不要把 NaN 传出去（会跟着发包含进服务端）
+      if (!Float.isFinite(newYaw) || !Float.isFinite(newPitch)) {
+         float fallbackYaw = Float.isFinite(currentYaw) ? currentYaw : mc.player.getYaw();
+         float fallbackPitch = Float.isFinite(currentPitch) ? currentPitch : mc.player.getPitch();
+         return new float[]{fallbackYaw, fallbackPitch};
+      }
+
       return new float[]{newYaw, newPitch};
    }
 
@@ -352,16 +541,37 @@ public class RotationManager implements Wrapper {
    }
 
    public void setRenderRotation(float yaw, float pitch, boolean force) {
-      if (mc.player != null) {
-         if (mc.player.age != this.ticksExisted || force) {
-            this.ticksExisted = mc.player.age;
-            prevRenderPitch = renderPitch;
-            prevRenderYawOffset = renderYawOffset;
-            renderYawOffset = this.getRenderYawOffset(yaw, prevRenderYawOffset);
-            prevRotationYawHead = rotationYawHead;
-            rotationYawHead = yaw;
-            renderPitch = pitch;
+      if (mc.player == null) {
+         return;
+      }
+
+      // 一旦把 NaN 写进 renderYawOffset / renderPitch，就会一直是 NaN，
+      // 渲染时每帧往实体上写一次，原版就刷 "Invalid entity rotation: NaN, discarding."
+      if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+         yaw = mc.player.getYaw();
+         pitch = mc.player.getPitch();
+         if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+            return;
          }
+      }
+
+      if (!Float.isFinite(prevRenderYawOffset)) {
+         prevRenderYawOffset = yaw;
+      }
+
+      if (!Float.isFinite(prevRenderPitch)) {
+         prevRenderPitch = pitch;
+      }
+
+      if (mc.player.age != this.ticksExisted || force) {
+         this.ticksExisted = mc.player.age;
+         prevRenderPitch = renderPitch;
+         prevRenderYawOffset = renderYawOffset;
+         float offset = this.getRenderYawOffset(yaw, prevRenderYawOffset);
+         renderYawOffset = Float.isFinite(offset) ? offset : yaw;
+         prevRotationYawHead = rotationYawHead;
+         rotationYawHead = yaw;
+         renderPitch = pitch;
       }
    }
 
@@ -401,7 +611,15 @@ public class RotationManager implements Wrapper {
       double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
       float yaw = (float)Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
       float pitch = (float)(-Math.toDegrees(Math.atan2(diffY, diffXZ)));
-      return new float[]{MathHelper.wrapDegrees(yaw), MathHelper.wrapDegrees(pitch)};
+      yaw = MathHelper.wrapDegrees(yaw);
+      pitch = MathHelper.wrapDegrees(pitch);
+      // 坐标是 NaN 时不把 NaN 传出去（否则会一路写进实体朝向）
+      if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+         yaw = mc.player != null ? mc.player.getYaw() : 0.0F;
+         pitch = mc.player != null ? mc.player.getPitch() : 0.0F;
+      }
+
+      return new float[]{yaw, pitch};
    }
 
    public static float[] getRotation(Vec3d vec) {
@@ -410,27 +628,36 @@ public class RotationManager implements Wrapper {
    }
 
    public static float getRenderPitch() {
-      return renderPitch;
+      return Float.isFinite(renderPitch) ? renderPitch : fallbackPitch();
    }
 
    public static float getRotationYawHead() {
-      return rotationYawHead;
+      return Float.isFinite(rotationYawHead) ? rotationYawHead : fallbackYaw();
    }
 
    public static float getRenderYawOffset() {
-      return renderYawOffset;
+      return Float.isFinite(renderYawOffset) ? renderYawOffset : fallbackYaw();
    }
 
    public static float getPrevRenderPitch() {
-      return prevRenderPitch;
+      return Float.isFinite(prevRenderPitch) ? prevRenderPitch : fallbackPitch();
    }
 
    public static float getPrevRotationYawHead() {
-      return prevRotationYawHead;
+      return Float.isFinite(prevRotationYawHead) ? prevRotationYawHead : fallbackYaw();
    }
 
    public static float getPrevRenderYawOffset() {
-      return prevRenderYawOffset;
+      return Float.isFinite(prevRenderYawOffset) ? prevRenderYawOffset : fallbackYaw();
+   }
+
+   /** 渲染朝向一旦被污染成 NaN，渲染线程会每帧把 NaN 写进实体并刷日志，这里统一退回玩家真实朝向 */
+   private static float fallbackYaw() {
+      return mc.player != null && Float.isFinite(mc.player.getYaw()) ? mc.player.getYaw() : 0.0F;
+   }
+
+   private static float fallbackPitch() {
+      return mc.player != null && Float.isFinite(mc.player.getPitch()) ? mc.player.getPitch() : 0.0F;
    }
 
    public float getLastYaw() {

@@ -2,6 +2,7 @@ package dev.g255.arc;
 
 import dev.g255.arc.api.events.eventbus.EventBus;
 import dev.g255.arc.api.events.impl.InitEvent;
+import dev.g255.arc.api.utils.log.LoadingLog;
 import dev.g255.arc.core.impl.BlurManager;
 import dev.g255.arc.core.impl.BreakManager;
 import dev.g255.arc.core.impl.CleanerManager;
@@ -10,7 +11,9 @@ import dev.g255.arc.core.impl.ConfigManager;
 import dev.g255.arc.core.impl.FPSManager;
 import dev.g255.arc.core.impl.FriendManager;
 import dev.g255.arc.core.impl.HoleManager;
+import dev.g255.arc.core.impl.HudItemManager;
 import dev.g255.arc.core.impl.ModuleManager;
+import dev.g255.arc.core.impl.PlaceBlockManager;
 import dev.g255.arc.core.impl.PlayerManager;
 import dev.g255.arc.core.impl.PopManager;
 import dev.g255.arc.core.impl.RotationManager;
@@ -43,10 +46,13 @@ public class Arc implements ModInitializer {
    public static final String CONFIG_DIR = "arc";
    public static final EventBus EVENT_BUS = new EventBus();
    public static HoleManager HOLE;
+   public static HudItemManager HUD_ITEM;
    public static PlayerManager PLAYER;
    public static TradeManager TRADE;
    public static CleanerManager CLEANER;
    public static XrayManager XRAY;
+   /** 自困 / 围脚放置用的方块表，内容由「物品」窗口维护（与矿透同一套机制） */
+   public static PlaceBlockManager PLACE_BLOCKS;
    public static ModuleManager MODULE;
    public static CommandManager COMMAND;
    public static ConfigManager CONFIG;
@@ -88,13 +94,17 @@ public class Arc implements ModInitializer {
    }
 
    public void onInitialize() {
+      // 最早挂上：加载界面在资源装载阶段就要拿日志，晚一步就少一大截
+      LoadingLog.attach();
       this.register();
       MODULE = new ModuleManager();
       CONFIG = new ConfigManager();
       HOLE = new HoleManager();
+      HUD_ITEM = new HudItemManager();
       COMMAND = new CommandManager();
       FRIEND = new FriendManager();
       XRAY = new XrayManager();
+      PLACE_BLOCKS = new PlaceBlockManager();
       CLEANER = new CleanerManager();
       TRADE = new TradeManager();
       ROTATION = new RotationManager();

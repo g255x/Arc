@@ -36,6 +36,7 @@ public class ShaderManager implements Wrapper {
    public static ManagedShaderEffect SNOW;
    public static ManagedShaderEffect FLOW;
    public static ManagedShaderEffect RAINBOW;
+   /** 主菜单/所有非游戏内界面的极光背景（Hachimi 同款 post effect）。 */
    public static ManagedShaderEffect MENU;
    public float time = 0.0F;
    private boolean shaderDisabled = false;
@@ -226,13 +227,15 @@ public class ShaderManager implements Wrapper {
 
    public void reloadShaders() {
       DEFAULT = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/outline.json"));
-      MENU = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/menu.json"));
       SMOKE = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/smoke.json"));
       GRADIENT = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/gradient.json"));
       SNOW = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/snow.json"));
       FLOW = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/flow.json"));
       RAINBOW = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/rainbow.json"));
       PULSE = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/pulse.json"));
+      // 主菜单极光：和 Hachimi 一样走 arc 命名空间的 post effect
+      // （shaders/post/menu.json → shaders/program/menu.json + menu.fsh）
+      MENU = ShaderEffectManager.getInstance().manage(Identifier.of("arc", "shaders/post/menu.json"));
       DEFAULT_OUTLINE = ShaderEffectManager.getInstance().manage(Identifier.of("shaders/post/outline.json"), (managedShaderEffect) -> {
          PostEffectProcessor effect = managedShaderEffect.getShaderEffect();
          if (effect != null) {

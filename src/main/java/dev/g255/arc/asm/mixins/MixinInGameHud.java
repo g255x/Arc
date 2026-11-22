@@ -2,28 +2,16 @@ package dev.g255.arc.asm.mixins;
 
 import dev.g255.arc.Arc;
 import dev.g255.arc.api.events.impl.PreRender2DEvent;
-import dev.g255.arc.api.utils.player.EntityUtil;
-import dev.g255.arc.api.utils.render.ColorUtil;
-import dev.g255.arc.api.utils.render.TextUtil;
-import dev.g255.arc.core.impl.FontManager;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
-import dev.g255.arc.mod.modules.impl.client.HUD;
 import dev.g255.arc.mod.modules.impl.render.Crosshair;
 import dev.g255.arc.mod.modules.impl.render.NoRender;
-import java.awt.Color;
-import java.util.Objects;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -34,10 +22,6 @@ public abstract class MixinInGameHud {
    @Final
    @Shadow
    private MinecraftClient client;
-   @Unique
-   final Color minColor = new Color(196, 0, 0);
-   @Unique
-   final Color maxColor = new Color(0, 227, 0);
 
    @Inject(
       method = {"renderPortalOverlay"},
@@ -61,77 +45,6 @@ public abstract class MixinInGameHud {
          info.cancel();
       }
 
-   }
-
-   @Inject(
-      method = {"renderMainHud"},
-      at = {@At("TAIL")}
-   )
-   private void onRenderMainHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-      PlayerEntity player;
-      if (HUD.INSTANCE.isOn() && HUD.INSTANCE.armor.getValue() && (player = this.getCameraPlayer()) != null) {
-         int x = context.getScaledWindowWidth() / 2 + 91;
-         int y = context.getScaledWindowHeight() - 28 - HUD.INSTANCE.armorOffset.getValueInt();
-         if (this.client.interactionManager.hasStatusBars()) {
-            y -= 16;
-         }
-
-         int t;
-         if ((t = this.getHeartCount(this.getRiddenEntity())) == 0) {
-            y -= 10;
-         }
-
-         int maxAir = player.getMaxAir();
-         int air = Math.min(player.getAir(), maxAir);
-         if (player.isSubmergedIn(FluidTags.WATER) || air < maxAir) {
-            int w = this.getHeartRows(t) - 1;
-            y += w * 10;
-         }
-
-         for(ItemStack armor : this.client.player.getInventory().armor) {
-            x -= 20;
-            if (!armor.isEmpty()) {
-               context.getMatrices().push();
-               int damage = EntityUtil.getDamagePercent(armor);
-               context.drawItem(armor, x, y);
-               context.drawItemInSlot(this.client.textRenderer, armor, x, y);
-               if (HUD.INSTANCE.durability.getValue()) {
-                  if (HUD.INSTANCE.font.getValue()) {
-                     FontManager.small.drawString(context.getMatrices(), damage + "%", (double)(x + 1), (double)((float)y - FontManager.small.getFontHeight() / 2.0F), ColorUtil.fadeColor(this.minColor, this.maxColor, (double)((float)damage / 100.0F)).getRGB(), HUD.INSTANCE.shadow.getValue());
-                  } else {
-                     String string = damage + "%";
-                     float f = (float)(x + 2);
-                     float f2 = (float)y;
-                     Objects.requireNonNull(this.client.textRenderer);
-                     TextUtil.drawStringScale(context, string, f, f2 - 2.25F, ColorUtil.fadeColor(this.minColor, this.maxColor, (double)((float)damage / 100.0F)).getRGB(), 0.5F, HUD.INSTANCE.shadow.getValue());
-                  }
-               }
-
-               context.getMatrices().pop();
-            }
-         }
-      }
-
-   }
-
-   @Shadow
-   private int getHeartRows(int t) {
-      return 0;
-   }
-
-   @Shadow
-   private int getHeartCount(LivingEntity livingEntity) {
-      return 0;
-   }
-
-   @Shadow
-   private PlayerEntity getCameraPlayer() {
-      return null;
-   }
-
-   @Shadow
-   private LivingEntity getRiddenEntity() {
-      return null;
    }
 
    @Shadow

@@ -26,8 +26,8 @@ public class FontManager {
    public static void init() {
       try {
          // 默认界面字体必须包含中文字形，否则物品/方块名会渲染成豆腐块
-         ui = assets(8.0F, "MiSans-Regular", 0);
-         small = assets(6.0F, "MiSans-Regular", 0);
+         ui = assets(8.0F, "font", 0);
+         small = assets(6.0F, "font", 0);
          icon = assetsWithoutOffset(8.0F, "icon", 0);
       } catch (Exception e) {
          e.printStackTrace();
@@ -36,25 +36,21 @@ public class FontManager {
    }
 
    /**
-    * 按名字取字体流：assets/arc/fonts/&lt;name&gt;.ttf → MiSans-Regular.ttf → minecraft 自带字体。
-    * 最后一级只用于兜底，它只有 216 个 ASCII 码位，不能让中文界面走到这里。
+    * 按名字取字体流：assets/arc/fonts/&lt;name&gt;.ttf，取不到再回落到 font.ttf。
+    * 项目内只保留这一个含中文字形的字体文件，不再保留只会拉丁字符的兜底字体。
     */
    private static InputStream openFontFile(String name) {
       ClassLoader classLoader = FontManager.class.getClassLoader();
       InputStream stream = classLoader.getResourceAsStream("assets/arc/fonts/" + name + ".ttf");
       if (stream == null) {
-         stream = classLoader.getResourceAsStream("assets/arc/fonts/MiSans-Regular.ttf");
-      }
-
-      if (stream == null) {
-         stream = classLoader.getResourceAsStream("assets/minecraft/font/font.ttf");
+         stream = classLoader.getResourceAsStream("assets/arc/fonts/font.ttf");
       }
 
       return stream;
    }
 
    /**
-    * 所有字体统一放在 assets/arc/fonts/ 下；请求的字体文件不存在时统一回落到 MiSans-Regular
+    * 所有字体统一放在 assets/arc/fonts/ 下；请求的字体文件不存在时统一回落到 font
     * （含完整中文字形），只有它也不存在时才用 minecraft 自带字体兜底。
     */
    public static FontRenderer assets(float size, String font, int style, String alternate) throws IOException, FontFormatException {

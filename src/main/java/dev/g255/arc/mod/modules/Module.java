@@ -11,6 +11,7 @@ import dev.g255.arc.mod.modules.impl.client.ColorsModule;
 import dev.g255.arc.mod.modules.impl.client.HUD;
 import dev.g255.arc.mod.modules.settings.Setting;
 import dev.g255.arc.mod.modules.settings.impl.BindSetting;
+import dev.g255.arc.mod.modules.settings.impl.BlockListSetting;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.ColorSetting;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
@@ -56,6 +57,11 @@ public abstract class Module extends Mod {
 
    public void setChinese(String chinese) {
       this.chinese = chinese;
+   }
+
+   /** 模块中文名（没有设过就是 null）—— 搜索栏拿它做中文/拼音匹配 */
+   public String getChineseName() {
+      return this.chinese;
    }
 
    public String getArrayName() {
@@ -278,6 +284,11 @@ public abstract class Module extends Mod {
       return setting;
    }
 
+   public BlockListSetting add(BlockListSetting setting) {
+      this.addSetting(setting);
+      return setting;
+   }
+
    public List<Setting> getSettings() {
       return this.settings;
    }
@@ -347,13 +358,18 @@ public abstract class Module extends Mod {
          public String getIcon() {
             return "7";
          }
+      },
+      HUD {
+         public String getIcon() {
+            return "H";
+         }
       };
 
       public abstract String getIcon();
 
       // $FF: synthetic method
       private static Category[] $values() {
-         return new Category[]{Combat, Misc, Render, Movement, Player, Exploit, Client};
+         return new Category[]{Combat, Misc, Render, Movement, Player, Exploit, Client, HUD};
       }
    }
 }

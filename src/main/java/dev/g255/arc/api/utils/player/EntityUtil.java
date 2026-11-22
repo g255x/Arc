@@ -3,7 +3,7 @@ package dev.g255.arc.api.utils.player;
 import dev.g255.arc.api.utils.Wrapper;
 import dev.g255.arc.api.utils.world.BlockPosX;
 import dev.g255.arc.api.utils.world.BlockUtil;
-import dev.g255.arc.mod.gui.ClickGuiScreen;
+import dev.g255.arc.mod.gui.clickgui.ClickGuiScreen;
 import dev.g255.arc.mod.gui.PeekScreen;
 import dev.g255.arc.mod.modules.impl.client.AntiCheat;
 import dev.g255.arc.mod.modules.settings.enums.SwingSide;

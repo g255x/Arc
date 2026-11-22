@@ -1,7 +1,15 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  net.minecraft.client.MinecraftClient
+ *  net.minecraft.client.gui.DrawContext
+ *  net.minecraft.client.util.InputUtil
+ *  net.minecraft.client.util.SelectionManager
+ *  net.minecraft.util.Formatting
+ */
 package dev.g255.arc.mod.gui.items.buttons;
 
-import dev.g255.arc.api.utils.math.Animation;
-import dev.g255.arc.api.utils.math.Easing;
 import dev.g255.arc.api.utils.math.Timer;
 import dev.g255.arc.api.utils.render.ColorUtil;
 import dev.g255.arc.api.utils.render.Render2DUtil;
@@ -9,166 +17,145 @@ import dev.g255.arc.mod.modules.impl.client.ClickGui;
 import dev.g255.arc.mod.modules.settings.ChineseTranslator;
 import dev.g255.arc.mod.modules.settings.impl.StringSetting;
 import java.awt.Color;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.SelectionManager;
+import net.minecraft.util.Formatting;
 
-public class StringButton extends Button {
-   private static final Timer idleTimer = new Timer();
-   private static boolean idle;
-   private final StringSetting setting;
-   public boolean isListening;
-   private String currentString = "";
-   private final Animation fillAnimation = new Animation();
-   private final Animation hoverAnimation = new Animation();
+public class StringButton
+extends Button {
+    private static final Timer idleTimer = new Timer();
+    private static boolean idle;
+    private final StringSetting setting;
+    public boolean isListening;
+    private String currentString = "";
 
-   @Override
-   public dev.g255.arc.mod.modules.settings.Setting getSetting() {
-      return this.setting;
-   }
+    public StringButton(StringSetting setting) {
+        super(setting.getName());
+        this.setting = setting;
+    }
 
-   /** 显示名每帧从配置项取：切换语言后不必重建 GUI，配置名立刻跟着变 */
-   @Override
-   public String getName() {
-      return this.setting.getDisplayName();
-   }
+    public static String removeLastChar(String str) {
+        String output = "";
+        if (str != null && !str.isEmpty()) {
+            output = str.substring(0, str.length() - 1);
+        }
+        return output;
+    }
 
-   public StringButton(StringSetting setting) {
-      super(setting.getDisplayName());
-      this.setting = setting;
-      double initial = this.getState() ? (double)1.0F : (double)0.0F;
-      this.fillAnimation.from = initial;
-      this.fillAnimation.to = initial;
-   }
+    public static String getIdleSign() {
+        if (idleTimer.passed(500L)) {
+            idle = !idle;
+            idleTimer.reset();
+        }
+        if (idle) {
+            return "_";
+        }
+        return "";
+    }
 
-   public static String removeLastChar(String str) {
-      String output = "";
-      if (str != null && !str.isEmpty()) {
-         output = str.substring(0, str.length() - 1);
-      }
+    @Override
+    public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
+        boolean hovered = this.isHovering(mouseX, mouseY);
+        double baseDelay = this.getColorDelay();
+        float w = (float)this.width + 7.0f;
+        float h = (float)this.height - 0.5f;
+        if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum && this.getState()) {
+            int a = !hovered ? ClickGui.getInstance().alpha.getValueInt() : ClickGui.getInstance().hoverAlpha.getValueInt();
+            Render2DUtil.drawLutRect(context.getMatrices(), this.x, this.y, w, h, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), a);
+        } else {
+            Color color = ClickGui.getInstance().getColor(baseDelay);
+            Render2DUtil.rect(context.getMatrices(), this.x, this.y, this.x + w, this.y + (float)this.height - 0.5f, this.getState() ? (!hovered ? ColorUtil.injectAlpha(color, ClickGui.getInstance().alpha.getValueInt()).getRGB() : ColorUtil.injectAlpha(color, ClickGui.getInstance().hoverAlpha.getValueInt()).getRGB()) : (!hovered ? defaultColor : hoverColor));
+        }
+        float textY = this.getCenteredTextY(this.y, (float)this.height - 0.5f);
+        if (this.isListening) {
+            this.drawString(this.currentString + StringButton.getIdleSign(), (double)(this.x + 2.3f), (double)textY, this.getState() ? enableTextColor : defaultTextColor);
+        } else if (this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
+            this.drawString(ChineseTranslator.cn() ? "\u6062\u590d\u9ed8\u8ba4" : "Reset Default", (double)(this.x + 2.3f), (double)textY, enableTextColor);
+        } else {
+            this.drawString(this.setting.getDisplayName() + ": " + String.valueOf(Formatting.GRAY) + this.setting.getValue(), (double)(this.x + 2.3f), (double)textY, this.getState() ? enableTextColor : defaultTextColor);
+        }
+    }
 
-      return output;
-   }
+    @Override
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
+            this.isListening = false;
+            this.currentString = "";
+            this.setting.setValue(this.setting.getDefaultValue());
+            StringButton.sound();
+            return;
+        }
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
 
-   public static String getIdleSign() {
-      if (idleTimer.passed(500L)) {
-         idle = !idle;
-         idleTimer.reset();
-      }
+    @Override
+    public void onKeyTyped(char typedChar, int keyCode) {
+        if (this.isListening) {
+            this.setString(this.currentString + typedChar);
+        }
+    }
 
-      return idle ? "_" : "";
-   }
+    @Override
+    public void onKeyPressed(int key) {
+        if (this.isListening) {
+            switch (key) {
+                case 256: {
+                    this.isListening = false;
+                    break;
+                }
+                case 257: 
+                case 335: {
+                    this.enterString();
+                    break;
+                }
+                case 86: {
+                    if (!InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)341)) break;
+                    this.setString(this.currentString + SelectionManager.getClipboard((MinecraftClient)mc));
+                    break;
+                }
+                case 259: {
+                    this.setString(StringButton.removeLastChar(this.currentString));
+                }
+            }
+        }
+    }
 
-   public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
-      boolean hovered = this.isHovering(mouseX, mouseY);
-      double hoverProgress = this.hoverAnimation.get(hovered ? (double)1.0F : (double)0.0F, 130L, Easing.CubicInOut);
-      double fillProgress = this.fillAnimation.get(this.getState() ? (double)1.0F : (double)0.0F, 160L, Easing.CubicInOut);
-      double baseDelay = this.getColorDelay();
-      int baseA = ClickGui.getInstance().alpha.getValueInt();
-      int hoverA = ClickGui.getInstance().hoverAlpha.getValueInt();
-      int accentA = Math.max(0, Math.min(255, (int)Math.round((double)baseA + (double)(hoverA - baseA) * hoverProgress)));
-      Color defaultColor = ClickGui.getInstance().defaultColor.getValue();
-      Color hoverColor = ClickGui.getInstance().hoverColor.getValue();
-      Color unpressedFill = ColorUtil.fadeColor(new Color(defaultColor.getRed(), defaultColor.getGreen(), defaultColor.getBlue(), defaultColor.getAlpha()), hoverColor, hoverProgress);
-      float w = (float)this.width + 7.0F;
-      float h = (float)this.height - 0.5F;
-      float wipe = w * (float)Math.max((double)0.0F, Math.min((double)1.0F, fillProgress));
-      if (ClickGui.getInstance().colorMode.getValue() == ClickGui.ColorMode.Spectrum) {
-         Render2DUtil.rect(context.getMatrices(), this.x, this.y, this.x + w, this.y + h, unpressedFill.getRGB());
-         if (wipe > 0.01F) {
-            Render2DUtil.drawLutRect(context.getMatrices(), this.x, this.y, wipe, h, ClickGui.getInstance().getSpectrumLutId(), ClickGui.getInstance().getSpectrumLutHeight(), accentA);
-         }
-      } else {
-         Color pressedFill = ColorUtil.injectAlpha(ClickGui.getInstance().getColor(baseDelay), accentA);
-         if (wipe <= 0.01F) {
-            Render2DUtil.rect(context.getMatrices(), this.x, this.y, this.x + w, this.y + h, unpressedFill.getRGB());
-         } else if (wipe >= w - 0.01F) {
-            Render2DUtil.rect(context.getMatrices(), this.x, this.y, this.x + w, this.y + h, pressedFill.getRGB());
-         } else {
-            Render2DUtil.rect(context.getMatrices(), this.x, this.y, this.x + wipe, this.y + h, pressedFill.getRGB());
-            Render2DUtil.rect(context.getMatrices(), this.x + wipe, this.y, this.x + w, this.y + h, unpressedFill.getRGB());
-         }
-      }
+    @Override
+    public void update() {
+        this.setHidden(!this.setting.isVisible());
+    }
 
-      float textY = this.getCenteredTextY(this.y, (float)this.height - 0.5F);
-      if (this.isListening) {
-         String var10001 = this.currentString;
-         this.drawString(var10001 + getIdleSign(), (double)(this.x + 2.3F), (double)textY, this.getState() ? enableTextColor : defaultTextColor);
-      } else if (this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed(mc.getWindow().getHandle(), 340)) {
-         this.drawString(ChineseTranslator.resetHint(false), (double)(this.x + 2.3F), (double)textY, enableTextColor);
-      } else {
-         String var23 = this.getName();
-         this.drawString(var23 + ": " + String.valueOf(Formatting.GRAY) + this.setting.getValue(), (double)(this.x + 2.3F), (double)textY, this.getState() ? enableTextColor : defaultTextColor);
-      }
+    private void enterString() {
+        if (this.currentString.isEmpty()) {
+            this.setting.setValue(this.setting.getDefaultValue());
+        } else {
+            this.setting.setValue(this.currentString);
+        }
+        this.onMouseClick();
+    }
 
-   }
+    @Override
+    public void toggle() {
+        this.setString(this.setting.getValue());
+        this.isListening = !this.isListening;
+    }
 
-   public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-      if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed(mc.getWindow().getHandle(), 340)) {
-         this.isListening = false;
-         this.currentString = "";
-         this.setting.setValue(this.setting.getDefaultValue());
-         sound();
-      } else {
-         super.mouseClicked(mouseX, mouseY, mouseButton);
-      }
-   }
+    @Override
+    public boolean getState() {
+        return !this.isListening;
+    }
 
-   public void onKeyTyped(char typedChar, int keyCode) {
-      if (this.isListening) {
-         this.setString(this.currentString + typedChar);
-      }
+    public void setString(String newString) {
+        this.currentString = newString;
+    }
 
-   }
+    /** 设置项说明（悬停时弹出） */
+    @Override
+    public String getTooltip() {
+        return this.setting.getDescription();
+    }
 
-   public void onKeyPressed(int key) {
-      if (this.isListening) {
-         switch (key) {
-            case 86:
-               if (InputUtil.isKeyPressed(mc.getWindow().getHandle(), 341)) {
-                  String var10001 = this.currentString;
-                  this.setString(var10001 + SelectionManager.getClipboard(mc));
-               }
-               break;
-            case 256:
-               this.isListening = false;
-               break;
-            case 257:
-            case 335:
-               this.enterString();
-               break;
-            case 259:
-               this.setString(removeLastChar(this.currentString));
-         }
-      }
-
-   }
-
-   public void update() {
-      this.setHidden(!this.setting.isVisible());
-   }
-
-   private void enterString() {
-      if (this.currentString.isEmpty()) {
-         this.setting.setValue(this.setting.getDefaultValue());
-      } else {
-         this.setting.setValue(this.currentString);
-      }
-
-      this.onMouseClick();
-   }
-
-   public void toggle() {
-      this.setString(this.setting.getValue());
-      this.isListening = !this.isListening;
-   }
-
-   public boolean getState() {
-      return !this.isListening;
-   }
-
-   public void setString(String newString) {
-      this.currentString = newString;
-   }
 }
+

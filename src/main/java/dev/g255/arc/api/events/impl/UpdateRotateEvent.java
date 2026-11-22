@@ -21,6 +21,10 @@ public class UpdateRotateEvent {
    }
 
    public void setYaw(float yaw) {
+      if (!Float.isFinite(yaw)) {
+         return;
+      }
+
       this.modified = true;
       this.setYawWithoutSync(yaw);
    }
@@ -30,6 +34,10 @@ public class UpdateRotateEvent {
    }
 
    public void setPitch(float pitch) {
+      if (!Float.isFinite(pitch)) {
+         return;
+      }
+
       this.modified = true;
       this.setPitchWithoutSync(pitch);
    }

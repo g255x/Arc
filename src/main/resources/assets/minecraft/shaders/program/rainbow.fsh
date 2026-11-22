@@ -2,15 +2,12 @@
 
 uniform sampler2D DiffuseSampler;
 in vec2 texCoord;
-in vec2 oneTexel;
 out vec4 fragColor;
 
 uniform float quality;
 uniform float radius;
 uniform float divider;
 uniform float maxSample;
-
-uniform vec2 InSize;
 
 uniform float alpha2;
 
@@ -20,7 +17,7 @@ uniform float time;
 float glowShader() {
 
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {

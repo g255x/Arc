@@ -1,3 +1,13 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  net.minecraft.item.ItemStack
+ *  net.minecraft.item.Items
+ *  net.minecraft.network.packet.Packet
+ *  net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+ *  net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket$Full
+ */
 package dev.g255.arc.mod.modules.impl.player;
 
 import dev.g255.arc.api.events.eventbus.EventListener;
@@ -5,6 +15,7 @@ import dev.g255.arc.api.events.impl.PacketEvent;
 import dev.g255.arc.api.events.impl.UpdateEvent;
 import dev.g255.arc.asm.accessors.IPlayerMoveC2SPacket;
 import dev.g255.arc.mod.modules.Module;
+import dev.g255.arc.mod.modules.impl.exploit.BowBomb;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.item.ItemStack;
@@ -12,65 +23,61 @@ import net.minecraft.item.Items;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 
-public class NoFall extends Module {
-   private final EnumSetting<NoFallMode> mode;
-   private final SliderSetting getDistance;
+public class NoFall
+extends Module {
+    private final EnumSetting<NoFallMode> mode = this.add(new EnumSetting<NoFallMode>("Mode", NoFallMode.Packet));
+    private final SliderSetting getDistance = this.add(new SliderSetting("Distance", 3.0, 0.0, 8.0, 0.1));
 
-   public NoFall() {
-      super("NoFall", "Prevents fall damage.", Module.Category.Player);
-      this.mode = this.add(new EnumSetting("Mode", NoFall.NoFallMode.Packet));
-      this.getDistance = this.add(new SliderSetting("Distance", (double)3.0F, (double)0.0F, (double)8.0F, 0.1));
-      this.setChinese("没有摔落伤害");
-   }
+    public NoFall() {
+        super("NoFall", "Prevents fall damage.", Module.Category.Player);
+        this.setChinese("\u6ca1\u6709\u6454\u843d\u4f24\u5bb3");
+    }
 
-   public String getInfo() {
-      return ((NoFallMode)this.mode.getValue()).name();
-   }
+    @Override
+    public String getInfo() {
+        return this.mode.getValue().name();
+    }
 
-   @EventListener
-   public void onUpdate(UpdateEvent event) {
-      if (!nullCheck()) {
-         if (this.mode.is(NoFall.NoFallMode.Grim) && this.checkFalling()) {
-            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0E-9, mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), false));
-            mc.player.onLanding();
-         }
+    @EventListener
+    public void onUpdate(UpdateEvent event) {
+        if (NoFall.nullCheck()) {
+            return;
+        }
+        if (this.mode.is(NoFallMode.Grim) && this.checkFalling()) {
+            mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.Full(NoFall.mc.player.getX(), NoFall.mc.player.getY() + 1.0E-9, NoFall.mc.player.getZ(), NoFall.mc.player.getYaw(), NoFall.mc.player.getPitch(), false));
+            NoFall.mc.player.onLanding();
+        }
+    }
 
-      }
-   }
+    private boolean checkFalling() {
+        return NoFall.mc.player.fallDistance > (float)NoFall.mc.player.getSafeFallDistance() && !NoFall.mc.player.isOnGround() && !NoFall.mc.player.isFallFlying();
+    }
 
-   private boolean checkFalling() {
-      return mc.player.fallDistance > (float)mc.player.getSafeFallDistance() && !mc.player.isOnGround() && !mc.player.isFallFlying();
-   }
-
-   @EventListener
-   public void onPacketSend(PacketEvent.Send event) {
-      if (!nullCheck()) {
-         for(ItemStack is : mc.player.getArmorItems()) {
-            if (is.getItem() == Items.ELYTRA) {
-               return;
+    @EventListener
+    public void onPacketSend(PacketEvent.Send event) {
+        if (NoFall.nullCheck()) {
+            return;
+        }
+        for (ItemStack is : NoFall.mc.player.getArmorItems()) {
+            if (is.getItem() != Items.ELYTRA) continue;
+            return;
+        }
+        if (!this.mode.is(NoFallMode.Packet)) {
+            return;
+        }
+        Packet<?> packet = event.getPacket();
+        if (packet instanceof PlayerMoveC2SPacket) {
+            PlayerMoveC2SPacket packet2 = (PlayerMoveC2SPacket)packet;
+            if (NoFall.mc.player.fallDistance >= (float)this.getDistance.getValue() && !BowBomb.send) {
+                ((IPlayerMoveC2SPacket)packet2).setOnGround(true);
             }
-         }
+        }
+    }
 
-         if (this.mode.is(NoFall.NoFallMode.Packet)) {
-            Packet<?> packet = event.getPacket();
-            if (packet instanceof PlayerMoveC2SPacket) {
-               PlayerMoveC2SPacket packet2 = (PlayerMoveC2SPacket)packet;
-               if (mc.player.fallDistance >= (float)this.getDistance.getValue()) {
-                  ((IPlayerMoveC2SPacket)packet2).setOnGround(true);
-               }
-            }
+    public static enum NoFallMode {
+        Packet,
+        Grim;
 
-         }
-      }
-   }
-
-   public static enum NoFallMode {
-      Packet,
-      Grim;
-
-      // $FF: synthetic method
-      private static NoFallMode[] $values() {
-         return new NoFallMode[]{Packet, Grim};
-      }
-   }
+    }
 }
+

@@ -6,6 +6,7 @@ package dev.g255.arc.mod.modules.impl.combat;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.settings.impl.BooleanSetting;
 import dev.g255.arc.mod.modules.settings.impl.StringSetting;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,9 +60,38 @@ extends Module {
     }
 
     private List<Module> getAllModules() {
-        // 旧实现用 "dev.luminous.mod..." 反射拿 INSTANCE，包名重构后一个都找不到，
-        // 导致"紧急停止"其实什么都没关。这里直接读 ModuleManager 注册表。
-        return new ArrayList<Module>(dev.g255.arc.Arc.MODULE.getModules());
+        String[] moduleNames;
+        ArrayList<Module> modules = new ArrayList<Module>();
+        for (String moduleName : moduleNames = new String[]{"AutoKit", "Fonts", "NoTerrainScreen", "AutoCrystal", "Ambience", "AntiHunger", "AntiVoid", "AutoWalk", "VClip", "ExtraTab", "AntiWeak", "BedCrafter", "Friend", "AspectRatio", "ChunkESP", "Aura", "PistonCrystal", "AutoAnchor", "PhaseESP", "AutoArmor", "Breaker", "AutoLog", "AutoEZ", "SelfTrap", "Sorter", "AutoMend", "AutoPot", "AutoPush", "Offhand", "Nuker", "AutoTrap", "AutoWeb", "Blink", "ChorusControl", "BlockStrafe", "FastSwim", "Blocker", "Quiver", "BowBomb", "BreakESP", "Burrow", "Punctuation", "MaceSpoof", "CameraClip", "ChatAppend", "ClickGui", "InfiniteTrident", "ColorsModule", "AutoRegear", "LavaFiller", "AntiPhase", "Clip", "AntiCheat", "IRC", "Fov", "Criticals", "CevBreaker", "Crosshair", "Chams", "AntiPacket", "AutoReconnect", "ESP", "HoleESP", "Tracers", "MovementSync", "ElytraFly", "PacketLogger", "TeleportLogger", "SkinFlicker", "EntityControl", "NameTags", "ShulkerViewer", "PingSpoof", "FakePlayer", "Spammer", "MotionCamera", "HighLight", "FastFall", "FastWeb", "Flatten", "Fly", "Yaw", "Freecam", "FreeLook", "TimerModule", "Tips", "ClientSetting", "TextRadar", "Info", "NoResourcePack", "RocketExtend", "HoleFiller", "HoleSnap", "LogoutSpots", "AutoTool", "Trajectories", "KillEffect", "AutoPearl", "AntiEffects", "NoFall", "NoRender", "NoSlow", "NoSound", "AirPlace", "Xray", "PacketEat", "PacketFly", "PacketMine", "PacketControl", "Phase", "PlaceRender", "InteractTweaks", "PopChams", "Replenish", "ServerLagger", "Scaffold", "ShaderModule", "AntiCrawl", "AntiRegear", "SafeWalk", "NoJumpDelay", "Speed", "Sprint", "Strafe", "Step", "Surround", "TotemParticle", "Velocity", "ViewModel", "XCarry", "Zoom"}) {
+            Module module = this.getModuleInstance(moduleName);
+            if (module == null) continue;
+            modules.add(module);
+        }
+        return modules;
+    }
+
+    private Module getModuleInstance(String moduleName) {
+        try {
+            String[] possiblePackages;
+            for (String packageName : possiblePackages = new String[]{"dev.luminous.mod.modules.impl.combat.", "dev.luminous.mod.modules.impl.movement.", "dev.luminous.mod.modules.impl.player.", "dev.luminous.mod.modules.impl.render.", "dev.luminous.mod.modules.impl.misc.", "dev.luminous.mod.modules.impl.client.", "dev.luminous.mod.modules.impl.exploit."}) {
+                try {
+                    String className = packageName + moduleName;
+                    Class<?> clazz = Class.forName(className);
+                    Field instanceField = clazz.getDeclaredField("INSTANCE");
+                    instanceField.setAccessible(true);
+                    Object instance = instanceField.get(null);
+                    if (!(instance instanceof Module)) continue;
+                    return (Module)instance;
+                }
+                catch (ClassNotFoundException | NoSuchFieldException e) {
+                    // empty catch block
+                }
+            }
+        }
+        catch (Exception exception) {
+            // empty catch block
+        }
+        return null;
     }
 
     private boolean shouldWhitelist(Module module, List<String> whitelistModules) {

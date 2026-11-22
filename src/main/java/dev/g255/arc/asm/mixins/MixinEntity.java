@@ -4,6 +4,7 @@ import dev.g255.arc.Arc;
 import dev.g255.arc.api.events.impl.LookDirectionEvent;
 import dev.g255.arc.api.events.impl.SprintEvent;
 import dev.g255.arc.api.utils.Wrapper;
+import dev.g255.arc.api.utils.rotation.RotationNaNGuard;
 import dev.g255.arc.mod.modules.impl.movement.Velocity;
 import dev.g255.arc.mod.modules.impl.render.NoRender;
 import dev.g255.arc.mod.modules.impl.render.ShaderModule;
@@ -23,13 +24,24 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 public abstract class MixinEntity {
    @Shadow
    private static final int SPRINTING_FLAG_INDEX = 3;
+   @Shadow
+   private float yaw;
+   @Shadow
+   private float pitch;
 
    @Inject(
-      method = {"changeLookDirection"},
+      method = {"changeLookDirection(DD)V"},
       at = {@At("HEAD")},
       cancellable = true
    )
    private void hookChangeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
+      // 鼠标增量非有限（窗口最小化/失焦时偶发）会让朝向直接算成 NaN，先掐掉
+      if (!Double.isFinite(cursorDeltaX) || !Double.isFinite(cursorDeltaY)) {
+         RotationNaNGuard.report("changeLookDirection", (float)cursorDeltaX);
+         ci.cancel();
+         return;
+      }
+
       if (Entity.class.cast(this) == Wrapper.mc.player) {
          LookDirectionEvent lookDirectionEvent = LookDirectionEvent.get((Entity)Entity.class.cast(this), cursorDeltaX, cursorDeltaY);
          Arc.EVENT_BUS.post(lookDirectionEvent);
@@ -38,6 +50,43 @@ public abstract class MixinEntity {
          }
       }
 
+   }
+
+   /**
+    * 原版 setYaw/setPitch 收到 NaN 时会丢弃并打印 "Invalid entity rotation"。
+    * 这里提前拦下：行为与原版一致（不写入），但不再每帧刷日志，而且会把调用来源打出来。
+    * 若字段本身已经被污染成 NaN，顺手恢复，避免渲染插值一直是 NaN。
+    */
+   @Inject(
+      method = {"setYaw(F)V"},
+      at = {@At("HEAD")},
+      cancellable = true
+   )
+   private void arc$guardSetYaw(float value, CallbackInfo ci) {
+      if (!Float.isFinite(this.yaw)) {
+         this.yaw = 0.0F;
+      }
+
+      if (!RotationNaNGuard.isValid(value)) {
+         RotationNaNGuard.report("Entity.setYaw", value);
+         ci.cancel();
+      }
+   }
+
+   @Inject(
+      method = {"setPitch(F)V"},
+      at = {@At("HEAD")},
+      cancellable = true
+   )
+   private void arc$guardSetPitch(float value, CallbackInfo ci) {
+      if (!Float.isFinite(this.pitch)) {
+         this.pitch = 0.0F;
+      }
+
+      if (!RotationNaNGuard.isValid(value)) {
+         RotationNaNGuard.report("Entity.setPitch", value);
+         ci.cancel();
+      }
    }
 
    @Inject(

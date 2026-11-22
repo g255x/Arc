@@ -3,7 +3,6 @@
 
 uniform sampler2D DiffuseSampler;
 in vec2 texCoord;
-in vec2 oneTexel;
 out vec4 fragColor;
 
 uniform vec2 InSize;
@@ -26,7 +25,7 @@ uniform float oct;
 float glowShader() {
 
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {
@@ -70,7 +69,7 @@ float fbm( in vec2 _st) {
 }
 
 
-vec3 getColor(vec4 centerCol) {
+vec3 getColor() {
     vec2 st = gl_FragCoord.xy / resolution.xy*3.;
     vec3 color = vec3(0.0);
     vec2 q = vec2(0.);
@@ -83,17 +82,16 @@ vec3 getColor(vec4 centerCol) {
     color = vec3(first[0],first[1],first[2]);
     color = mix(color, vec3(second[0],second[1],second[2]), clamp(length(q),0.0,1.0));
     color = mix(color, vec3(third[0],third[1],third[2]), clamp(length(r.x),0.0,1.0));
-    vec4 outputLol = vec4((f*f*f+.6*f*f+.5*f)*color,first[3]);
-    return vec3(outputLol[0], outputLol[1], outputLol[2]);
+    return (f*f*f+.6*f*f+.5*f) * color;
 }
 
 void main() {
     vec4 centerCol = texture(DiffuseSampler, texCoord);
 
     if (centerCol.a != 0) {
-        fragColor = vec4(getColor(centerCol), alpha1);
+        fragColor = vec4(getColor(), alpha1);
     } else {
-        fragColor = vec4(getColor(centerCol), glowShader());
+        fragColor = vec4(getColor(), glowShader());
     }
 }
 

@@ -1,16 +1,21 @@
+/*
+ * Decompiled with CFR 0.152.
+ */
 package dev.g255.arc.mod.modules.impl.render;
 
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 
-public class Fov extends Module {
-   public static Fov INSTANCE;
-   public final SliderSetting fov = this.add(new SliderSetting("Fov", (double)90.0F, (double)30.0F, (double)170.0F, (double)1.0F));
-   public final SliderSetting itemFov = this.add(new SliderSetting("ItemFov", (double)70.0F, (double)30.0F, (double)170.0F, (double)1.0F));
+public class Fov
+extends Module {
+    public static Fov INSTANCE;
+    public final SliderSetting fov = this.add(new SliderSetting("Fov", 90.0, 30.0, 170.0, 1.0));
+    public final SliderSetting itemFov = this.add(new SliderSetting("ItemFov", 70.0, 30.0, 170.0, 1.0));
 
-   public Fov() {
-      super("Fov", Module.Category.Render);
-      this.setChinese("自定义视角");
-      INSTANCE = this;
-   }
+    public Fov() {
+        super("Fov", Module.Category.Render);
+        this.setChinese("\u81ea\u5b9a\u4e49\u89c6\u89d2");
+        INSTANCE = this;
+    }
 }
+

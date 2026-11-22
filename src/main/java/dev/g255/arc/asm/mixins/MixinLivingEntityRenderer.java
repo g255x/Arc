@@ -40,12 +40,31 @@ public abstract class MixinLivingEntityRenderer<T extends LivingEntity, M extend
    @Unique
    private float originalPrevBodyYaw;
 
+   @Unique
+   private boolean arc$rotationOverridden;
+
    @Inject(
       method = {"render*"},
       at = {@At("HEAD")}
    )
    public void onRenderPre(T livingEntity, float f, float g, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, CallbackInfo ci) {
+      this.arc$rotationOverridden = false;
       if (MinecraftClient.getInstance().player != null && livingEntity == MinecraftClient.getInstance().player && ClientSetting.INSTANCE.rotations.getValue()) {
+         float yaw = RotationManager.getRenderYawOffset();
+         float headYaw = RotationManager.getRotationYawHead();
+         float bodyYaw = RotationManager.getRenderYawOffset();
+         float pitch = RotationManager.getRenderPitch();
+         float prevYaw = RotationManager.getPrevRenderYawOffset();
+         float prevHeadYaw = RotationManager.getPrevRotationYawHead();
+         float prevPitch = RotationManager.getPrevRenderPitch();
+         // 窗口最小化等情况下旋转数据可能变成 NaN，直接 setYaw 会让原版每帧刷
+         // "Invalid entity rotation: NaN, discarding."，这里先拦一次
+         if (!Float.isFinite(yaw) || !Float.isFinite(headYaw) || !Float.isFinite(bodyYaw) || !Float.isFinite(pitch)
+               || !Float.isFinite(prevYaw) || !Float.isFinite(prevHeadYaw) || !Float.isFinite(prevPitch)) {
+            this.lastEntity = livingEntity;
+            return;
+         }
+
          this.originalYaw = livingEntity.getYaw();
          this.originalHeadYaw = livingEntity.headYaw;
          this.originalBodyYaw = livingEntity.bodyYaw;
@@ -53,14 +72,20 @@ public abstract class MixinLivingEntityRenderer<T extends LivingEntity, M extend
          this.originalPrevYaw = livingEntity.prevYaw;
          this.originalPrevHeadYaw = livingEntity.prevHeadYaw;
          this.originalPrevBodyYaw = livingEntity.prevBodyYaw;
-         livingEntity.setYaw(RotationManager.getRenderYawOffset());
-         livingEntity.headYaw = RotationManager.getRotationYawHead();
-         livingEntity.bodyYaw = RotationManager.getRenderYawOffset();
-         livingEntity.setPitch(RotationManager.getRenderPitch());
-         livingEntity.prevYaw = RotationManager.getPrevRenderYawOffset();
-         livingEntity.prevHeadYaw = RotationManager.getPrevRotationYawHead();
-         livingEntity.prevBodyYaw = RotationManager.getPrevRenderYawOffset();
-         livingEntity.prevPitch = RotationManager.getPrevRenderPitch();
+         if (!Float.isFinite(this.originalYaw) || !Float.isFinite(this.originalPitch)) {
+            this.lastEntity = livingEntity;
+            return;
+         }
+
+         livingEntity.setYaw(yaw);
+         livingEntity.headYaw = headYaw;
+         livingEntity.bodyYaw = bodyYaw;
+         livingEntity.setPitch(pitch);
+         livingEntity.prevYaw = prevYaw;
+         livingEntity.prevHeadYaw = prevHeadYaw;
+         livingEntity.prevBodyYaw = prevYaw;
+         livingEntity.prevPitch = prevPitch;
+         this.arc$rotationOverridden = true;
       }
 
       this.lastEntity = livingEntity;
@@ -71,7 +96,7 @@ public abstract class MixinLivingEntityRenderer<T extends LivingEntity, M extend
       at = {@At("TAIL")}
    )
    public void onRenderPost(T livingEntity, float f, float g, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, CallbackInfo ci) {
-      if (MinecraftClient.getInstance().player != null && livingEntity == MinecraftClient.getInstance().player && ClientSetting.INSTANCE.rotations.getValue()) {
+      if (this.arc$rotationOverridden && MinecraftClient.getInstance().player != null && livingEntity == MinecraftClient.getInstance().player && ClientSetting.INSTANCE.rotations.getValue()) {
          livingEntity.setYaw(this.originalYaw);
          livingEntity.headYaw = this.originalHeadYaw;
          livingEntity.bodyYaw = this.originalBodyYaw;
@@ -82,6 +107,7 @@ public abstract class MixinLivingEntityRenderer<T extends LivingEntity, M extend
          livingEntity.prevPitch = this.originalPitch;
       }
 
+      this.arc$rotationOverridden = false;
    }
 
    @ModifyArgs(

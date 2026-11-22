@@ -66,14 +66,14 @@ float fbm(vec2 pos) {
 float glowShader() {
 
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {
             vec4 currentColor = texture(DiffuseSampler, texCoord + vec2(texelSize.x * x, texelSize.y * y));
 
             if (currentColor.a != 0)
-            alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0))) / divider) : 1;
+                alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0.0))) / divider) : 1.0;
         }
     }
 
@@ -84,8 +84,7 @@ void main(void) {
     vec4 centerCol = texture(DiffuseSampler, texCoord);
     vec2 p = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
 
-    float t = 0.0, d;
-    float alpha = 0;
+    float alpha = 0.0;
 
     float time2 = 3.0 * time / 2.0;
 

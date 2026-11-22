@@ -49,6 +49,13 @@ public class InventoryUtil implements Wrapper {
    }
 
    public static void switchToSlot(int slot) {
+      // 已经是这个槽位了就不要再发：重复的 UpdateSelectedSlot 在服务端看来
+      // 就是「一直在切快捷栏」，是发包检测很爱抓的一种形状。
+      // 客户端状态本来就和目标一致，不发这一包不会不同步。
+      if (mc.player.getInventory().selectedSlot == slot) {
+         return;
+      }
+
       mc.player.getInventory().selectedSlot = slot;
       mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
    }
@@ -175,6 +182,43 @@ public class InventoryUtil implements Wrapper {
          ItemStack stack = mc.player.getInventory().getStack(i);
          if (stack != ItemStack.EMPTY && stack.getItem() instanceof BlockItem && ((BlockItem)stack.getItem()).getBlock() == blockIn) {
             return i;
+         }
+      }
+
+      return -1;
+   }
+
+   /**
+    * 在快捷栏里找列表中的第一块可用方块（Hachimi 的 BlockListSetting 走的就是这种「按列表找」）。
+    * 列表顺序即优先级：{@code Blocks} 里排在前面的先被使用。
+    */
+   public static int findBlockInList(java.util.List<Block> blocks) {
+      if (blocks == null || blocks.isEmpty()) {
+         return -1;
+      }
+
+      for(Block block : blocks) {
+         for(int i = 0; i < 9; ++i) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty() && stack.getItem() instanceof BlockItem && ((BlockItem)stack.getItem()).getBlock() == block) {
+               return i;
+            }
+         }
+      }
+
+      return -1;
+   }
+
+   /** 背包版（返回的是界面槽位号，配合 {@link #inventorySwap} 使用） */
+   public static int findBlockInListInventorySlot(java.util.List<Block> blocks) {
+      if (blocks == null || blocks.isEmpty()) {
+         return -1;
+      }
+
+      for(Block block : blocks) {
+         int slot = findBlockInventorySlot(block);
+         if (slot != -1) {
+            return slot;
          }
       }
 

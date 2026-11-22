@@ -3,7 +3,7 @@ package dev.g255.arc.mod.gui.fonts;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.g255.arc.api.utils.Wrapper;
 import dev.g255.arc.api.utils.render.Render3DUtil;
-import dev.g255.arc.mod.gui.ClickGuiScreen;
+import dev.g255.arc.mod.gui.clickgui.ClickGuiScreen;
 import dev.g255.arc.mod.modules.impl.client.ClickGui;
 import it.unimi.dsi.fastutil.chars.Char2IntArrayMap;
 import it.unimi.dsi.fastutil.chars.Char2ObjectArrayMap;
@@ -152,7 +152,28 @@ public class FontRenderer implements Closeable {
       }
    }
 
+   /**
+    * 取当前的 GUI Scale，窗口还没建好时给一个兜底值。
+    *
+    * <p>Arc 的 {@code onInitialize()} 是在 {@code MinecraftClient} 的构造函数里跑的，
+    * 那时 {@code mc.getWindow()} 仍然是 null（窗口在构造函数的后半段才创建）。
+    * 配置反序列化会顺手把 {@code Fonts} 模块打开，于是这里被调用 —— 直接
+    * {@code getWindow().getScaleFactor()} 就是启动期的那个 NPE。</p>
+    */
+   private static int resolveGameScale() {
+      return Wrapper.mc == null || Wrapper.mc.getWindow() == null ? 2 : (int)Wrapper.mc.getWindow().getScaleFactor();
+   }
+
+   /** 窗口是否已经就绪：没就绪时不能重建字体，也不能比对 GUI Scale。 */
+   private static boolean windowReady() {
+      return Wrapper.mc != null && Wrapper.mc.getWindow() != null;
+   }
+
    private void sizeCheck() {
+      if (!windowReady()) {
+         return;
+      }
+
       int gs = (int)Wrapper.mc.getWindow().getScaleFactor();
       if (gs != this.previousGameScale) {
          this.close();
@@ -169,7 +190,11 @@ public class FontRenderer implements Closeable {
          throw new IllegalStateException("Double call to init()");
       } else {
          this.initialized = true;
-         this.scaleMul = this.previousGameScale = (int)Wrapper.mc.getWindow().getScaleFactor();
+         this.scaleMul = resolveGameScale();
+         // 窗口没就绪时不要记下这个兜底值：previousGameScale 留在 -1，
+         // 等窗口真正建好，第一次 sizeCheck 就会拿真实 GUI Scale 和 -1 比对，
+         // 必定不相等 → 自动 close + init 用正确比例重建一次字体。
+         this.previousGameScale = windowReady() ? this.scaleMul : -1;
          this.font = font.deriveFont(sizePx * (float)this.scaleMul);
          if (this.prebakeGlyphs != null && !this.prebakeGlyphs.isEmpty()) {
             this.prebakeGlyphsFuture = this.prebake();
@@ -478,6 +503,17 @@ public class FontRenderer implements Closeable {
 
    public float getFontHeight() {
       return this.getStringHeight("A");
+   }
+
+   /**
+    * 紧凑行高。
+    * getStringHeight() 返回的是 Java2D 的逻辑行高（ascent + descent + leading），
+    * 默认字体（font.ttf）在 8px 字号下这个值是 11~12px，而实际墨迹只有 6~7px，
+    * 逐行排版（HUD 列表）就会留出很宽的空白。这里按字号给一个紧凑行高（字号 + 1），
+    * 和中文、英文的墨迹高度都能对上。
+    */
+   public float getLineHeight() {
+      return Math.max(1.0F, (float)Math.round(this.originalSize + 1.0F));
    }
 
    public void drawGradientString(MatrixStack stack, String s, float x, float y) {

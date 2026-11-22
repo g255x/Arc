@@ -2,15 +2,18 @@ package dev.g255.arc.api.utils.world;
 
 import dev.g255.arc.Arc;
 import dev.g255.arc.api.utils.Wrapper;
+import dev.g255.arc.api.utils.combat.PacketLimiter;
 import dev.g255.arc.api.utils.math.MathUtil;
 import dev.g255.arc.api.utils.player.EntityUtil;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.impl.client.AntiCheat;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.combat.AutoWeb;
+import dev.g255.arc.mod.modules.impl.player.AirPlace;
 import dev.g255.arc.mod.modules.settings.enums.Placement;
 import dev.g255.arc.mod.modules.settings.enums.SwingSide;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -61,9 +64,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class BlockUtil implements Wrapper {
    public static final List<BlockPos> placedPos = new ArrayList();
-   private static final double MIN_EYE_HEIGHT = 0.4;
-   private static final double MAX_EYE_HEIGHT = 1.62;
-   private static final double MOVEMENT_THRESHOLD = 2.0E-4;
 
    public static boolean canPlace(BlockPos pos) {
       return canPlace(pos, (double)1000.0F);
@@ -126,9 +126,30 @@ public class BlockUtil implements Wrapper {
       return hasEntity(new Box(pos), ignoreCrystal);
    }
 
+   /**
+    * 这一格里有没有挡放置的实体。
+    *
+    * <p>原来是 {@code for (Entity entity : getEntities(box))} —— {@code getEntities} 每次都要新建一个
+    * ArrayList 并把所有实体过一遍。这个方法在自动水晶的候选循环里是每格调一次（空气放置一开就是 1700+ 格/轮、
+    * 20 轮/秒），光是这些临时列表和每实体一次的 {@code getBoundingBox()} 分配就足以把 GC 打满。
+    * 现在直接遍历每刻缓存的实体表，不再建中间列表，判定条件与原来逐条一致。</p>
+    */
    public static boolean hasEntity(Box box, boolean ignoreCrystal) {
-      for(Entity entity : getEntities(box)) {
-         if (entity.isAlive() && !(entity instanceof ItemEntity) && !(entity instanceof ExperienceOrbEntity) && !(entity instanceof ExperienceBottleEntity) && !(entity instanceof ArrowEntity) && (!ignoreCrystal || !(entity instanceof EndCrystalEntity) || !(mc.player.getEyePos().distanceTo(MathUtil.getClosestPoint(entity)) <= AntiCheat.INSTANCE.ieRange.getValue()))) {
+      for (Entity entity : Arc.THREAD.getEntities()) {
+         if (entity == null
+            || entity instanceof ArmorStandEntity && AntiCheat.INSTANCE.ignoreArmorStand.getValue()
+            || !entity.getBoundingBox().intersects(box)
+            || !entity.isAlive()
+            || entity instanceof ItemEntity
+            || entity instanceof ExperienceOrbEntity
+            || entity instanceof ExperienceBottleEntity
+            || entity instanceof ArrowEntity) {
+            continue;
+         }
+
+         if (!ignoreCrystal
+            || !(entity instanceof EndCrystalEntity)
+            || !(mc.player.getEyePos().distanceTo(MathUtil.getClosestPoint(entity)) <= AntiCheat.INSTANCE.ieRange.getValue())) {
             return true;
          }
       }
@@ -171,8 +192,9 @@ public class BlockUtil implements Wrapper {
       BlockPos obsPos = pos.down();
       Direction facing = getClickSide(obsPos);
       Vec3d vec = obsPos.toCenterPos().add((double)facing.getVector().getX() * (double)0.5F, (double)facing.getVector().getY() * (double)0.5F, (double)facing.getVector().getZ() * (double)0.5F);
-      if (rotate) {
-         Arc.ROTATION.lookAt(vec);
+      // 朝向配额用完就这一发不发：带着旧朝向放水晶，服务端会顶回来
+      if (rotate && !Arc.ROTATION.aim(vec, 0.0F)) {
+         return;
       }
 
       clickBlock(obsPos, facing, false, offhand ? Hand.OFF_HAND : Hand.MAIN_HAND);
@@ -182,35 +204,51 @@ public class BlockUtil implements Wrapper {
       placeBlock(pos, rotate, AntiCheat.INSTANCE.packetPlace.getValue());
    }
 
-   public static void placeBlock(BlockPos pos, boolean rotate, boolean packet) {
+   public static boolean placeBlock(BlockPos pos, boolean rotate, boolean packet) {
       if (allowAirPlace()) {
-         placedPos.add(pos);
-         airPlace(pos, rotate, Hand.MAIN_HAND, packet);
-      } else {
-         Direction side = getPlaceSide(pos);
-         if (side != null) {
-            placedPos.add(pos);
-            clickBlock(pos.offset(side), side.getOpposite(), rotate, Hand.MAIN_HAND, packet);
+         if (!airPlace(pos, rotate, Hand.MAIN_HAND, packet)) {
+            return false;
          }
+
+         placedPos.add(pos);
+         return true;
       }
+
+      Direction side = getPlaceSide(pos);
+      if (side == null) {
+         return false;
+      }
+
+      if (!clickBlock(pos.offset(side), side.getOpposite(), rotate, Hand.MAIN_HAND, packet)) {
+         return false;
+      }
+
+      placedPos.add(pos);
+      return true;
    }
 
-   public static void clickBlock(BlockPos pos, Direction side, boolean rotate) {
-      clickBlock(pos, side, rotate, Hand.MAIN_HAND);
+   public static boolean clickBlock(BlockPos pos, Direction side, boolean rotate) {
+      return clickBlock(pos, side, rotate, Hand.MAIN_HAND);
    }
 
-   public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand) {
-      clickBlock(pos, side, rotate, hand, AntiCheat.INSTANCE.packetPlace.getValue());
+   public static boolean clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand) {
+      return clickBlock(pos, side, rotate, hand, AntiCheat.INSTANCE.packetPlace.getValue());
    }
 
-   public static void clickBlock(BlockPos pos, Direction side, boolean rotate, boolean packet) {
-      clickBlock(pos, side, rotate, Hand.MAIN_HAND, packet);
+   public static boolean clickBlock(BlockPos pos, Direction side, boolean rotate, boolean packet) {
+      return clickBlock(pos, side, rotate, Hand.MAIN_HAND, packet);
    }
 
-   public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, boolean packet) {
+   public static boolean clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, boolean packet) {
       Vec3d directionVec = new Vec3d((double)pos.getX() + (double)0.5F + (double)side.getVector().getX() * (double)0.5F, (double)pos.getY() + (double)0.5F + (double)side.getVector().getY() * (double)0.5F, (double)pos.getZ() + (double)0.5F + (double)side.getVector().getZ() * (double)0.5F);
-      if (rotate) {
-         Arc.ROTATION.lookAt(directionVec);
+      // 先转头再扣额度：朝向都不到位的话这一发包发出去也是废的
+      if (rotate && !Arc.ROTATION.aim(directionVec, 0.0F)) {
+         return false;
+      }
+
+      // 跨模块的每 tick 交互配额：超了就这一发不打，调用方下一 tick 自然重试
+      if (!PacketLimiter.acquireAction()) {
+         return false;
       }
 
       EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
@@ -227,12 +265,17 @@ public class BlockUtil implements Wrapper {
          Arc.ROTATION.snapBack();
       }
 
+      return true;
    }
 
-   public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, SwingSide swingSide) {
+   public static boolean clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, SwingSide swingSide) {
       Vec3d directionVec = new Vec3d((double)pos.getX() + (double)0.5F + (double)side.getVector().getX() * (double)0.5F, (double)pos.getY() + (double)0.5F + (double)side.getVector().getY() * (double)0.5F, (double)pos.getZ() + (double)0.5F + (double)side.getVector().getZ() * (double)0.5F);
-      if (rotate) {
-         Arc.ROTATION.lookAt(directionVec);
+      if (rotate && !Arc.ROTATION.aim(directionVec, 0.0F)) {
+         return false;
+      }
+
+      if (!PacketLimiter.acquireAction()) {
+         return false;
       }
 
       EntityUtil.swingHand(hand, swingSide);
@@ -243,24 +286,30 @@ public class BlockUtil implements Wrapper {
          Arc.ROTATION.snapBack();
       }
 
+      return true;
    }
 
    public static void airPlace(BlockPos pos, boolean rotate) {
       airPlace(pos, rotate, Hand.MAIN_HAND, AntiCheat.INSTANCE.packetPlace.getValue());
    }
 
-   public static void airPlace(BlockPos pos, boolean rotate, Hand hand, boolean packet) {
-      boolean bypass = false;
-      boolean bl = false;
+   public static boolean airPlace(BlockPos pos, boolean rotate, Hand hand, boolean packet) {
+      Direction side = getClickSide(pos);
+      Vec3d directionVec = new Vec3d((double)pos.getX() + (double)0.5F + (double)side.getVector().getX() * (double)0.5F, (double)pos.getY() + (double)0.5F + (double)side.getVector().getY() * (double)0.5F, (double)pos.getZ() + (double)0.5F + (double)side.getVector().getZ() * (double)0.5F);
+      if (rotate && !Arc.ROTATION.aim(directionVec, 0.0F)) {
+         return false;
+      }
+
+      if (!PacketLimiter.acquireAction()) {
+         return false;
+      }
+
+      // Grim 绕过：先把主手物品换到副手，再从副手交互。只对主手有意义，
+      // 否则会在副手上再换一次，把服务端的副手槽搞乱。
+      boolean bypass = hand == Hand.MAIN_HAND && AirPlace.INSTANCE != null && AirPlace.INSTANCE.grimBypass.getValue();
       if (bypass) {
          mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN));
          hand = Hand.OFF_HAND;
-      }
-
-      Direction side = getClickSide(pos);
-      Vec3d directionVec = new Vec3d((double)pos.getX() + (double)0.5F + (double)side.getVector().getX() * (double)0.5F, (double)pos.getY() + (double)0.5F + (double)side.getVector().getY() * (double)0.5F, (double)pos.getZ() + (double)0.5F + (double)side.getVector().getZ() * (double)0.5F);
-      if (rotate) {
-         Arc.ROTATION.lookAt(directionVec);
       }
 
       EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
@@ -281,6 +330,7 @@ public class BlockUtil implements Wrapper {
          mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN));
       }
 
+      return true;
    }
 
    public static double distanceToXZ(double x, double z, double x2, double z2) {
@@ -349,6 +399,10 @@ public class BlockUtil implements Wrapper {
 
    public static Direction getClickSide(BlockPos pos) {
       Direction side = Direction.UP;
+      if (pos == null) {
+         return side;
+      }
+
       double minDistance = Double.MAX_VALUE;
 
       for(Direction i : Direction.values()) {
@@ -364,6 +418,10 @@ public class BlockUtil implements Wrapper {
 
    public static Direction getClickSideStrict(BlockPos pos) {
       Direction side = null;
+      if (pos == null) {
+         return side;
+      }
+
       double minDistance = Double.MAX_VALUE;
 
       for(Direction i : Direction.values()) {
@@ -556,14 +614,20 @@ public class BlockUtil implements Wrapper {
 
    public static ArrayList<BlockPos> getSphere(float range, Vec3d pos) {
       ArrayList<BlockPos> list = new ArrayList();
+      double rangeSq = (double)range * (double)range;
 
       for(double y = pos.getY() + (double)range; y > pos.getY() - (double)range; --y) {
          if (!(y < (double)-64.0F)) {
+            double dy = Math.floor(y) + (double)0.5F - pos.y;
+
             for(double x = pos.getX() - (double)range; x < pos.getX() + (double)range; ++x) {
+               double dx = Math.floor(x) + (double)0.5F - pos.x;
+
                for(double z = pos.getZ() - (double)range; z < pos.getZ() + (double)range; ++z) {
-                  BlockPosX curPos = new BlockPosX(x, y, z);
-                  if (!(curPos.toCenterPos().distanceTo(pos) > (double)range)) {
-                     list.add(curPos);
+                  double dz = Math.floor(z) + (double)0.5F - pos.z;
+                  // 平方距离代替 sqrt（等价判定），省掉每格开方和一次 Vec3d 分配
+                  if (dx * dx + dy * dy + dz * dz <= rangeSq) {
+                     list.add(new BlockPosX(x, y, z));
                   }
                }
             }
@@ -586,6 +650,79 @@ public class BlockUtil implements Wrapper {
          BlockState state = mc.world.getBlockState(pos);
          return state.isReplaceable();
       }
+   }
+
+   /**
+    * 对齐 OpenHachimi 的 {@code PlacementUtils.Fs / Ft / Fu}：给一个暂时没面的目标格找一条垫脚链。
+    *
+    * <p>思路是从目标格往外逐层摸，先看有没有「邻居本身就能放」的（{@link #findDirectSupport}），
+    * 没有就沿这个邻居再往外递归一层，最多 {@code depth} 层。返回的顺序是「最远（能自己贴墙）→ 最近（贴着目标格）」，
+    * 依次放下去就能把整条路垫通。</p>
+    *
+    * @return 可能为空，表示这一侧垫不出来
+    */
+   public static List<BlockPos> supportChain(BlockPos target, double range, int depth) {
+      List<BlockPos> chain = supportChain0(target, range, depth, null);
+      if (chain == null || chain.isEmpty()) {
+         return new ArrayList<>();
+      }
+
+      Collections.reverse(chain);
+      return chain;
+   }
+
+   private static List<BlockPos> supportChain0(BlockPos pos, double range, int depth, List<BlockPos> acc) {
+      if (depth <= 0) {
+         return null;
+      }
+
+      List<BlockPos> list = acc == null ? new ArrayList<>() : acc;
+      BlockPos direct = findDirectSupport(pos, range);
+      if (direct != null) {
+         list.add(direct);
+         return list;
+      }
+
+      if (depth <= 1) {
+         return null;
+      }
+
+      for(Direction dir : Direction.values()) {
+         BlockPos next = pos.offset(dir);
+         if (list.contains(next)) {
+            continue;
+         }
+
+         if (!canReplace(next) || !isStrictDirection(next.offset(dir), dir.getOpposite()) || !canPlace(next, range, true)) {
+            continue;
+         }
+
+         // 每个方向都用一份新的副本往下探，走死了一条路不会污染别的分支
+         List<BlockPos> branch = new ArrayList<>(list);
+         branch.add(next);
+         if (getPlaceSide(next, range) != null) {
+            return branch;
+         }
+
+         List<BlockPos> result = supportChain0(next, range, depth - 1, branch);
+         if (result != null && !result.isEmpty() && getPlaceSide(result.get(result.size() - 1), range) != null) {
+            return result;
+         }
+      }
+
+      return null;
+   }
+
+   /** 对齐 Hachimi 的 {@code Fu}：目标格旁边本身就有一个能落子的格子 */
+   private static BlockPos findDirectSupport(BlockPos pos, double range) {
+      for(Direction dir : Direction.values()) {
+         BlockPos side = pos.offset(dir);
+         if (canReplace(side) && isStrictDirection(side.offset(dir), dir.getOpposite()) && canPlace(side, range, true) && getPlaceSide(side, range) != null) {
+            return side;
+         }
+      }
+
+      return null;
    }
 
    public static boolean canClick(BlockPos pos) {
@@ -622,7 +759,13 @@ public class BlockUtil implements Wrapper {
       return false;
    }
 
+   /**
+    * 其它模块能不能走「空中直接放置」这条路。
+    *
+    * <p>必须由 AirPlace 模块授权：模块开着才算允许，否则一律回到「找相邻方块贴面」的老逻辑。
+    * 这里的 INSTANCE 判空是为了防止模块还没构造完（静态初始化顺序）时被调用。
+    */
    public static boolean allowAirPlace() {
-      return false;
+      return AirPlace.INSTANCE != null && AirPlace.INSTANCE.isOn() && AirPlace.INSTANCE.module.getValue();
    }
 }

@@ -17,8 +17,13 @@ import dev.g255.arc.mod.modules.impl.client.ColorsModule;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.client.Fonts;
 import dev.g255.arc.mod.modules.impl.client.HUD;
-import dev.g255.arc.mod.modules.impl.client.HoverSound;
+import dev.g255.arc.mod.gui.HudElement;
 import dev.g255.arc.mod.modules.impl.client.IRC;
+import dev.g255.arc.mod.modules.impl.combat.AutoRegear;
+import dev.g255.arc.mod.modules.impl.combat.Breaker;
+import dev.g255.arc.mod.modules.impl.combat.Burrow;
+
+import dev.g255.arc.mod.modules.impl.client.HoverSound;
 import dev.g255.arc.mod.modules.impl.client.ItemsCounter;
 import dev.g255.arc.mod.modules.impl.client.TextRadar;
 import dev.g255.arc.mod.modules.impl.combat.AntiCobweb;
@@ -47,8 +52,10 @@ import dev.g255.arc.mod.modules.impl.combat.MaceGodPlus;
 import dev.g255.arc.mod.modules.impl.combat.MacePlus;
 import dev.g255.arc.mod.modules.impl.combat.Offhand;
 import dev.g255.arc.mod.modules.impl.combat.PistonCrystal;
+import dev.g255.arc.mod.modules.impl.combat.PistonCrystalPlus;
 import dev.g255.arc.mod.modules.impl.combat.PopEz;
 import dev.g255.arc.mod.modules.impl.combat.SelfTrap;
+import dev.g255.arc.mod.modules.impl.combat.Surround;
 import dev.g255.arc.mod.modules.impl.exploit.AntiHunger;
 import dev.g255.arc.mod.modules.impl.exploit.AntiPacket;
 import dev.g255.arc.mod.modules.impl.exploit.Blink;
@@ -73,7 +80,6 @@ import dev.g255.arc.mod.modules.impl.hud.PlayerModel;
 import dev.g255.arc.mod.modules.impl.misc.AntiAFK;
 import dev.g255.arc.mod.modules.impl.misc.AntiAim;
 import dev.g255.arc.mod.modules.impl.misc.AntiQuit;
-import dev.g255.arc.mod.modules.impl.misc.AutoBengDuan;
 import dev.g255.arc.mod.modules.impl.misc.AutoEZ;
 import dev.g255.arc.mod.modules.impl.misc.AutoLog;
 import dev.g255.arc.mod.modules.impl.misc.AutoReconnect;
@@ -138,11 +144,9 @@ import dev.g255.arc.mod.modules.impl.render.BreakESP;
 import dev.g255.arc.mod.modules.impl.render.CameraClip;
 import dev.g255.arc.mod.modules.impl.render.Chams;
 import dev.g255.arc.mod.modules.impl.render.Crosshair;
-import dev.g255.arc.mod.modules.impl.render.DynamicIsland;
 import dev.g255.arc.mod.modules.impl.render.ESP;
 import dev.g255.arc.mod.modules.impl.render.ItemCounter;
 import dev.g255.arc.mod.modules.impl.render.KillThunder;
-import dev.g255.arc.mod.modules.impl.render.EnemyInfo;
 import dev.g255.arc.mod.modules.impl.render.Fov;
 import dev.g255.arc.mod.modules.impl.render.HoleESP;
 import dev.g255.arc.mod.modules.impl.render.LogoutSpots;
@@ -160,7 +164,6 @@ import dev.g255.arc.mod.modules.impl.render.Trails;
 import dev.g255.arc.mod.modules.impl.render.Trajectories;
 import dev.g255.arc.mod.modules.impl.render.TwoDESP;
 import dev.g255.arc.mod.modules.impl.render.ViewModel;
-import dev.g255.arc.mod.modules.impl.render.Waypoints;
 import dev.g255.arc.mod.modules.impl.render.Zoom;
 import dev.g255.arc.mod.modules.impl.render.skybox.Skybox;
 import dev.g255.arc.mod.modules.settings.Setting;
@@ -225,7 +228,6 @@ import dev.g255.arc.mod.modules.impl.player.NoRotate;
 import dev.g255.arc.mod.modules.impl.render.BAHalo;
 import dev.g255.arc.mod.modules.impl.render.BreakerEsp;
 import dev.g255.arc.mod.modules.impl.render.CrystalPlaceRender;
-import dev.g255.arc.mod.modules.impl.render.EsuESP;
 import dev.g255.arc.mod.modules.impl.render.JumpCircle;
 import dev.g255.arc.mod.modules.impl.render.LastWalkEsp;
 import dev.g255.arc.mod.modules.impl.render.NameTag2D;
@@ -236,8 +238,6 @@ import dev.g255.arc.mod.modules.impl.render.Weather;
 public class ModuleManager implements Wrapper {
    private final ArrayList<Module> modules = new ArrayList();
    private final ArrayList<ToggleBanner> toggleBanners = new ArrayList();
-   private boolean notificationMouseWasDown = false;
-   private boolean interactiveToggleInBanner = false;
 
    public ArrayList<Module> getModules() {
       return this.modules;
@@ -264,12 +264,14 @@ public class ModuleManager implements Wrapper {
       this.addModule(new AspectRatio());
       this.addModule(new Aura());
       this.addModule(new PistonCrystal());
+      this.addModule(new PistonCrystalPlus());
       this.addModule(new AutoAnchor());
       this.addModule(new PhaseESP());
       this.addModule(new AutoArmor());
       this.addModule(new AutoLog());
       this.addModule(new AutoEZ());
       this.addModule(new SelfTrap());
+      this.addModule(new Surround());
       this.addModule(new AutoMend());
       this.addModule(new MaceAura());
       this.addModule(new MaceGodPlus());
@@ -295,7 +297,6 @@ public class ModuleManager implements Wrapper {
       this.addModule(new AutoSupplyPlus());
       this.addModule(new Clip());
       this.addModule(new AntiCheat());
-      this.addModule(new IRC());
       this.addModule(new ItemsCounter());
       this.addModule(new Fov());
       this.addModule(new Criticals());
@@ -330,6 +331,10 @@ public class ModuleManager implements Wrapper {
       this.addModule(new Tips());
       this.addModule(new ClientSetting());
       this.addModule(new TextRadar());
+      this.addModule(new AutoRegear());
+      this.addModule(new Breaker());
+      this.addModule(new Burrow());
+      this.addModule(new IRC());
       this.addModule(new HUD());
       this.addModule(new NoResourcePack());
       this.addModule(new RocketExtend());
@@ -387,21 +392,17 @@ public class ModuleManager implements Wrapper {
       this.addModule(new AntiAim());
       this.addModule(new MiddleClick());
       this.addModule(new Tooltips());
-      this.addModule(new Waypoints());
       this.addModule(new ArmorHUD());
       this.addModule(new AntiPiston());
       this.addModule(new AntiCobweb());
       this.addModule(new MacePlus());
       this.addModule(new AntiSlowFalling());
       this.addModule(new WindLongJump());
-      this.addModule(new EnemyInfo());
       this.addModule(new TargetESP());
       this.addModule(new TwoDESP());
       this.addModule(new Skybox());
       this.addModule(new ThirtyTwoKMace());
-      this.addModule(new AutoBengDuan());
       this.addModule(new BackPackHUD());
-      this.addModule(new DynamicIsland());
       this.addModule(new NotificationHud());
       this.addModule(new AnimatedGif());
       this.addModule(new PlayerModel());
@@ -457,7 +458,6 @@ public class ModuleManager implements Wrapper {
       this.addModule(new BAHalo());
       this.addModule(new BreakerEsp());
       this.addModule(new CrystalPlaceRender());
-      this.addModule(new EsuESP());
       this.addModule(new JumpCircle());
       this.addModule(new LastWalkEsp());
       this.addModule(new NameTag2D());
@@ -509,8 +509,6 @@ public class ModuleManager implements Wrapper {
             module.onLogin();
          }
       }
-
-      CommandManager.sendMessage("§7[§eArc§7] §7Developed by §e§lG255§f - Welcome!");
    }
 
    public void onLogout() {
@@ -523,8 +521,17 @@ public class ModuleManager implements Wrapper {
    }
 
    public void onRender2D(DrawContext drawContext) {
+      // GUI 停在「HUD（界面）」页时，HudElement 由编辑器自己画（带虚线框、可拖拽），
+      // 这里跳过它们，否则同一个元素会被画两遍
+      boolean editingHud = false;
+      if (mc.currentScreen instanceof dev.g255.arc.mod.gui.clickgui.ClickGuiScreen screen) {
+         editingHud = screen.getPage() == dev.g255.arc.mod.gui.clickgui.ClickGuiScreen.Page.Hud;
+      }
       for(Module module : this.modules) {
          if (module.isOn()) {
+            if (editingHud && module instanceof HudElement) {
+               continue;
+            }
             try {
                module.onRender2D(drawContext, mc.getRenderTickCounter().getTickDelta(true));
             } catch (Exception e) {

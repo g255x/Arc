@@ -16,7 +16,8 @@ out vec4 fragColor;
 
 float snow(vec2 uv, float scale)
 {
-    float w=smoothstep(1., 0., -uv.y*(scale/10.));
+    // smoothstep 的 edge0 必须小于 edge1；原来 1.0 -> 0.0 属于未定义行为，取反后行为固定
+    float w = 1.0 - smoothstep(0.0, 1.0, -uv.y*(scale/10.));
     if (w<.1) return 0.;
     uv+=time/scale;uv.y+=time*2./scale;uv.x+=sin(uv.y+time*.5)/scale;
     uv*=scale;vec2 s=floor(uv), f=fract(uv), p;float k=3., d;
@@ -28,14 +29,14 @@ float snow(vec2 uv, float scale)
 float glowShader() {
 
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {
             vec4 currentColor = texture(DiffuseSampler, texCoord + vec2(texelSize.x * x, texelSize.y * y));
 
             if (currentColor.a != 0)
-            alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0))) / divider) : 1;
+                alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0.0))) / divider) : 1.0;
         }
     }
 
@@ -46,8 +47,9 @@ void main(){
     vec4 centerCol = texture(DiffuseSampler, texCoord);
 
     vec2 uv=(gl_FragCoord.xy*2.-resolution.xy) / min(resolution.x, resolution.y);
-    vec3 finalColor=vec3(0);
-    float c=smoothstep(1., 0.3, clamp(uv.y*.3+.8, 0., .75));
+    vec3 finalColor=vec3(0.0);
+    // smoothstep 的 edge0 必须小于 edge1，原来是 1.0 -> 0.3（未定义行为），改成取反
+    float c = 1.0 - smoothstep(0.3, 1.0, clamp(uv.y*.3+.8, 0.0, .75));
     c+=snow(uv, 30.)*.0;
     c+=snow(uv, 20.)*.0;
     c+=snow(uv, 15.)*.0;
@@ -58,7 +60,7 @@ void main(){
     finalColor = vec3(c);
     finalColor *= vec3(color[0],color[1],color[2]);
 
-    float alpha = 0;
+    float alpha = 0.0;
     if (centerCol.a != 0) {
         alpha = color[3];
     } else {

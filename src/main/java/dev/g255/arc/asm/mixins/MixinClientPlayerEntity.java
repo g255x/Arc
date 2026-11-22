@@ -217,10 +217,13 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
       this.prePitch = this.getPitch();
       SendMovementPacketsEvent event = SendMovementPacketsEvent.get(this.getYaw(), this.getPitch());
       Arc.EVENT_BUS.post(event);
-      Arc.ROTATION.rotationYaw = event.getYaw();
-      Arc.ROTATION.rotationPitch = event.getPitch();
-      this.setYaw(event.getYaw());
-      this.setPitch(event.getPitch());
+      // 监听器可能写进 NaN（比如目标坐标算炸了），这里退回原来的朝向，别把 NaN 传给实体
+      float yaw = Float.isFinite(event.getYaw()) ? event.getYaw() : this.preYaw;
+      float pitch = Float.isFinite(event.getPitch()) ? event.getPitch() : this.prePitch;
+      Arc.ROTATION.rotationYaw = yaw;
+      Arc.ROTATION.rotationPitch = pitch;
+      this.setYaw(yaw);
+      this.setPitch(pitch);
    }
 
    @Inject(

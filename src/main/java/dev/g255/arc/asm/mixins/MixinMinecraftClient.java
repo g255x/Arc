@@ -119,6 +119,13 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
       ArcStartTs = System.currentTimeMillis();
    }
 
+   /**
+    * 主菜单用原版 {@code TitleScreen}：这里不再做任何替换。
+    *
+    * <p>以前客户端有自己的 {@code ArcTitleScreen}，用 {@code @ModifyVariable(setScreen)}
+    * 把原版主界面整个顶掉；现在改为「原版界面 + 换背景 / 换 logo」，所以这段逻辑删除，
+    * 只保留 {@code OpenScreenEvent} 那个注入点。</p>
+    */
    @Inject(
       method = {"setScreen"},
       at = {@At("HEAD")},

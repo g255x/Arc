@@ -1,10 +1,5 @@
 #version 150
 
-#ifdef GL_ES
-precision mediump float;
-#endif
-#define NUM_OCTAVES 16
-
 uniform sampler2D DiffuseSampler;
 in vec2 texCoord;
 uniform vec2 resolution;
@@ -22,19 +17,19 @@ uniform float maxSample;
 
 float glowShader() {
     vec2 texelSize = vec2(1.0 / resolution.x * (radius * quality), 1.0 / resolution.y * (radius * quality));
-    float alpha = 0;
+    float alpha = 0.0;
 
     for (float x = -radius; x < radius; x++) {
         for (float y = -radius; y < radius; y++) {
             vec4 currentColor = texture(DiffuseSampler, texCoord + vec2(texelSize.x * x, texelSize.y * y));
 
             if (currentColor.a != 0)
-            alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0))) / divider) : 1;
-            alpha *= minAlpha;
+                alpha += divider > 0 ? max(0.0, (maxSample - distance(vec2(x, y), vec2(0.0))) / divider) : 1.0;
         }
     }
 
-    return alpha;
+    // 原来在循环里 alpha *= minAlpha，采样次数一多就会被指数衰减成 0，这里只在最后压一次
+    return alpha * minAlpha;
 }
 
 void main() {

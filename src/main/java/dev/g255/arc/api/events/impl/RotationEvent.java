@@ -45,6 +45,12 @@ public class RotationEvent {
    }
 
    public void setTarget(Vec3d target, float speed, float priority) {
+      // 目标坐标或速度含 NaN 时直接忽略，避免把 NaN 带进旋转插值（最终写进玩家朝向）
+      if (target == null || !Double.isFinite(target.x) || !Double.isFinite(target.y) || !Double.isFinite(target.z)
+            || !Float.isFinite(speed)) {
+         return;
+      }
+
       if (priority >= this.priority) {
          this.rotation = false;
          this.priority = priority;
@@ -55,6 +61,10 @@ public class RotationEvent {
    }
 
    public void setRotation(float yaw, float pitch, float speed, float priority) {
+      if (!Float.isFinite(yaw) || !Float.isFinite(pitch) || !Float.isFinite(speed)) {
+         return;
+      }
+
       if (priority >= this.priority) {
          this.rotation = true;
          this.priority = priority;
