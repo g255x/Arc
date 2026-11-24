@@ -1,0 +1,42 @@
+{
+  "mio": {
+    "sounds": [
+      "arc:mio"
+    ]
+  },
+  "mio2": {
+    "sounds": [
+      "arc:mio2"
+    ]
+  },
+  "mio3": {
+    "sounds": [
+      "arc:mio3"
+    ]
+  },
+  "killeffect.kill1": {
+    "sounds": [
+      "arc:killeffect/kill1"
+    ]
+  },
+  "killeffect.kill2": {
+    "sounds": [
+      "arc:killeffect/kill2"
+    ]
+  },
+  "killeffect.kill3": {
+    "sounds": [
+      "arc:killeffect/kill3"
+    ]
+  },
+  "killeffect.kill4": {
+    "sounds": [
+      "arc:killeffect/kill4"
+    ]
+  },
+  "killeffect.kill5": {
+    "sounds": [
+      "arc:killeffect/kill5"
+    ]
+  }
+}

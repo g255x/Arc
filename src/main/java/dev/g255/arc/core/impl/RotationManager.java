@@ -133,8 +133,15 @@ public class RotationManager implements Wrapper {
    public void snapBack() {
       if (AntiCheat.INSTANCE.snapBackEnum.is(SnapBack.Force)) {
          mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), this.rotationYaw, this.rotationPitch, mc.player.isOnGround()));
+         // 服务端朝向已经恢复，去重缓存必须一起失效：否则 50ms 内的下一次 aim 会被判定成
+         // 「刚发过同一个角度、服务端还朝着那里」而不再补朝向包，交互包带着恢复后的旧朝向出去、
+         // 直接被服务端顶回来（塞了锚却不炸、连炸断断续续都是这个）。
+         sentYaw = Float.NaN;
+         sentPitch = Float.NaN;
       } else if (AntiCheat.INSTANCE.snapBackEnum.is(SnapBack.Tick)) {
          snapBack = true;
+         sentYaw = Float.NaN;
+         sentPitch = Float.NaN;
       }
 
    }

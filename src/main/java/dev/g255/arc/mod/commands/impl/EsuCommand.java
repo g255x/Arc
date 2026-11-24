@@ -1,0 +1,44 @@
+package dev.g255.arc.mod.commands.impl;
+
+import dev.g255.arc.Arc;
+import dev.g255.arc.mod.commands.Command;
+import dev.g255.arc.mod.modules.Module;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.List;
+import net.minecraft.text.Text;
+
+public class EsuCommand extends Command {
+   public EsuCommand() {
+      super("esu", "");
+   }
+
+   public void runCommand(String[] parameters) {
+      if (parameters.length == 1) {
+         Arc.THREAD.execute(() -> {
+            try {
+               URL url = new URL("https://api.xywlapi.cc/qqapi?qq=" + parameters[0]);
+               BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+
+               String inputLine;
+               while((inputLine = in.readLine()) != null) {
+                  if (Module.nullCheck()) {
+                     return;
+                  }
+
+                  mc.player.sendMessage(Text.of(inputLine));
+               }
+            } catch (Exception e) {
+               e.printStackTrace();
+            }
+
+         });
+      }
+
+   }
+
+   public String[] getAutocorrect(int count, List<String> seperated) {
+      return null;
+   }
+}

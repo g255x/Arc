@@ -30,6 +30,7 @@ import dev.g255.arc.api.utils.world.BlockPosX;
 import dev.g255.arc.api.utils.world.BlockUtil;
 import dev.g255.arc.core.impl.RotationManager;
 import dev.g255.arc.mod.modules.Module;
+import dev.g255.arc.mod.modules.impl.render.PlaceRender;
 import dev.g255.arc.mod.modules.impl.client.ClientSetting;
 import dev.g255.arc.mod.modules.impl.exploit.Blink;
 import dev.g255.arc.mod.modules.impl.player.PacketMine;
@@ -209,7 +210,7 @@ extends Module {
                         }
                         int old = AutoPush.mc.player.getInventory().selectedSlot;
                         this.doSwap(pistonSlot);
-                        BlockUtil.placeBlock(piston, false, this.pistonPacket.getValue());
+                        this.placeWithRender(piston, false, this.pistonPacket.getValue());
                         if (this.inventory.getValue()) {
                             this.doSwap(pistonSlot);
                             EntityUtil.syncInventory();
@@ -237,7 +238,7 @@ extends Module {
                             int oldSlot = AutoPush.mc.player.getInventory().selectedSlot;
                             int powerSlot = this.findBlock(this.getBlockType());
                             this.doSwap(powerSlot);
-                            BlockUtil.placeBlock(piston.offset(i), this.rotate.getValue(), this.powerPacket.getValue());
+                            this.placeWithRender(piston.offset(i), this.rotate.getValue(), this.powerPacket.getValue());
                             if (this.inventory.getValue()) {
                                 this.doSwap(powerSlot);
                                 EntityUtil.syncInventory();
@@ -272,7 +273,7 @@ extends Module {
                     int oldSlot = AutoPush.mc.player.getInventory().selectedSlot;
                     int powerSlot = this.findBlock(this.getBlockType());
                     this.doSwap(powerSlot);
-                    BlockUtil.placeBlock(piston.offset(powerFacing), this.rotate.getValue(), this.powerPacket.getValue());
+                    this.placeWithRender(piston.offset(powerFacing), this.rotate.getValue(), this.powerPacket.getValue());
                     if (this.inventory.getValue()) {
                         this.doSwap(powerSlot);
                         EntityUtil.syncInventory();
@@ -292,7 +293,7 @@ extends Module {
                         }
                         int old = AutoPush.mc.player.getInventory().selectedSlot;
                         this.doSwap(n);
-                        BlockUtil.placeBlock(piston, false, this.pistonPacket.getValue());
+                        this.placeWithRender(piston, false, this.pistonPacket.getValue());
                         if (this.inventory.getValue()) {
                             this.doSwap(n);
                             EntityUtil.syncInventory();
@@ -325,7 +326,7 @@ extends Module {
                 int oldSlot = AutoPush.mc.player.getInventory().selectedSlot;
                 int powerSlot = this.findBlock(this.getBlockType());
                 this.doSwap(powerSlot);
-                BlockUtil.placeBlock(piston.offset(direction5), this.rotate.getValue(), this.powerPacket.getValue());
+                this.placeWithRender(piston.offset(direction5), this.rotate.getValue(), this.powerPacket.getValue());
                 if (this.inventory.getValue()) {
                     this.doSwap(powerSlot);
                     EntityUtil.syncInventory();
@@ -357,6 +358,17 @@ extends Module {
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         float[] rotation = RotationManager.getRotation(directionVec);
         return MathUtil.getFacingOrder(rotation[0], rotation[1]).getOpposite() == facing;
+    }
+
+    /** 放置 + 登记「放置显示」：先出灰红的“试图放置”框，落地后转正常淡出 */
+    private void placeWithRender(BlockPos pos, boolean rotate, boolean packet) {
+        if (pos == null) {
+            return;
+        }
+        if (PlaceRender.INSTANCE != null) {
+            PlaceRender.INSTANCE.create(pos, 120L);
+        }
+        BlockUtil.placeBlock(pos, rotate, packet);
     }
 
     private void doSwap(int slot) {

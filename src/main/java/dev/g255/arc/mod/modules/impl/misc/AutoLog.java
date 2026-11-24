@@ -32,7 +32,9 @@ extends Module {
     public static boolean loggedOut = false;
     private final BooleanSetting logOnEnable = this.add(new BooleanSetting("LogOnEnable", false));
     private final BooleanSetting onPop = this.add(new BooleanSetting("OnPop", true));
-    private final BooleanSetting lowArmor = this.add(new BooleanSetting("LowArmor", true));
+    private final BooleanSetting lowArmor = this.add(new BooleanSetting("LowArmor", true).setParent());
+    private final SliderSetting durabilityThreshold = this.add(new SliderSetting("DurabilityThreshold", 5.0, 0.0, 100.0, 1.0, () -> this.lowArmor.isOpen()).setSuffix("%"));
+
     private final BooleanSetting totemLess = this.add(new BooleanSetting("TotemLess", true).setParent());
     private final SliderSetting totems = this.add(new SliderSetting("Totems", 2.0, 0.0, 20.0, 1.0, this.totemLess::isOpen));
     private final BooleanSetting autoDisable = this.add(new BooleanSetting("AutoDisable", true));
@@ -58,11 +60,16 @@ extends Module {
             return;
         }
         if (this.lowArmor.getValue()) {
+            double threshold = this.durabilityThreshold.getValue();
             for (ItemStack armor : AutoLog.mc.player.getInventory().armor) {
-                int damage;
-                if (armor.isEmpty() || (damage = EntityUtil.getDamagePercent(armor)) >= 5) continue;
-                this.disconnect("Your armor has keyCodec durability of less than 5%.");
-                return;
+                if (!armor.isEmpty()) {
+                    double durability = (double)EntityUtil.getDamagePercent(armor);
+                    if (durability < threshold) {
+                        String durabilityText = String.format("%.1f", durability);
+                        this.disconnect("Your armor durability is " + durabilityText + "% (below " + threshold + "%).");
+                        return;
+                    }
+                }
             }
         }
     }
@@ -90,4 +97,3 @@ extends Module {
         }
     }
 }
-

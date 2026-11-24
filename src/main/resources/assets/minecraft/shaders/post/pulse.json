@@ -1,0 +1,31 @@
+{
+  "targets": [
+    "swap",
+    "bufOut"
+  ],
+  "passes": [
+    {
+      "name": "pulse",
+      "intarget": "minecraft:main",
+      "outtarget": "swap",
+      "uniforms": [
+        { "name": "color", "values": [ 1.0, 1.0, 1.0 ] },
+        { "name": "color2", "values": [ 1.0, 1.0, 1.0 ] },
+        { "name": "mixFactor", "values": [ 0.5 ] },
+        { "name": "minAlpha", "values": [ 0.3 ] },
+        { "name": "radius", "values": [ 2.0 ] },
+        { "name": "quality", "values": [ 1.0 ] },
+        { "name": "divider", "values": [ 150.0 ] },
+        { "name": "maxSample", "values": [ 10.0 ] },
+        { "name": "size", "values": [ 12.0 ] },
+        { "name": "resolution", "values": [ 1.0, 1.0 ] },
+        { "name": "time", "values": [ 1.0 ] }
+      ]
+    },
+    {
+      "name": "blit",
+      "intarget": "swap",
+      "outtarget": "minecraft:main"
+    }
+  ]
+}

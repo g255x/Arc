@@ -11,12 +11,14 @@ import dev.g255.arc.api.events.eventbus.EventListener;
 import dev.g255.arc.api.events.impl.UpdateEvent;
 import dev.g255.arc.mod.modules.Module;
 import dev.g255.arc.mod.modules.settings.impl.EnumSetting;
+import dev.g255.arc.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 
 public class VClip
 extends Module {
     private final EnumSetting<Mode> mode = this.add(new EnumSetting<Mode>("Mode", Mode.Jump));
+    private final SliderSetting upBlocks = this.add(new SliderSetting("UpBlocks", 5.0, 0.0, 50.0, 1.0));
 
     public VClip() {
         super("VClip", Module.Category.Movement);
@@ -28,7 +30,7 @@ extends Module {
         this.disable();
         switch (this.mode.getValue().ordinal()) {
             case 1: {
-                VClip.mc.player.setPosition(VClip.mc.player.getX(), VClip.mc.player.getY() + 3.0, VClip.mc.player.getZ());
+                VClip.mc.player.setPosition(VClip.mc.player.getX(), VClip.mc.player.getY() + this.upBlocks.getValue(), VClip.mc.player.getZ());
                 mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(VClip.mc.player.getX(), VClip.mc.player.getY(), VClip.mc.player.getZ(), true));
                 break;
             }
@@ -61,4 +63,3 @@ extends Module {
 
     }
 }
-
