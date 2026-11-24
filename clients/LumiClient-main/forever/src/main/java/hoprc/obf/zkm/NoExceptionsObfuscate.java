@@ -1,7 +1,0 @@
-package hoprc.obf.zkm;
-/**
- * @author BanCN
- * @apiNote 请你将不能使用异常流混淆的部分代码打上这个注解，可以是一个类也可以是一个方法。
- */
-public @interface NoExceptionsObfuscate {
-}

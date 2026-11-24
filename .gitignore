@@ -21,3 +21,6 @@ hs_err_pid*
 run
 
 .workbuddy
+
+# 参考用的其它客户端源码（仅本地保留，不进仓库）
+clients/
